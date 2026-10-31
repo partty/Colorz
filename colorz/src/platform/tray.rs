@@ -6,6 +6,7 @@
 //! loop; it never touches GTK objects.
 
 use std::io::Cursor;
+use std::path::PathBuf;
 
 use colorz_core::wheel::render_okhsl_disc;
 use gtk::glib;
@@ -113,6 +114,8 @@ struct ColorzTray {
     model: TrayModel,
     /// PNG swatch for each of the first [`MAX_RECENT`] recent picks.
     swatches: Vec<Vec<u8>>,
+    /// The themed icon's name, or empty when the icon is not installed.
+    icon_name: String,
     icon: Icon,
 }
 
@@ -122,6 +125,7 @@ impl ColorzTray {
             events,
             swatches: swatches(&model),
             model,
+            icon_name: themed_icon_name(),
             icon: wheel_icon(ICON_SIZE),
         }
     }
@@ -159,7 +163,7 @@ impl ksni::Tray for ColorzTray {
     }
 
     fn icon_name(&self) -> String {
-        APP_ID.into()
+        self.icon_name.clone()
     }
 
     fn icon_pixmap(&self) -> Vec<Icon> {
@@ -246,6 +250,29 @@ fn swatch_png(rgb: [u8; 3]) -> Vec<u8> {
     png
 }
 
+/// The app's icon name when an icon theme directory has it, else empty.
+/// GNOME's AppIndicator extension shows a placeholder for a name it cannot
+/// find instead of using the pixmap, so the name is only sent when the
+/// icon is installed.
+fn themed_icon_name() -> String {
+    let mut dirs = vec![glib::user_data_dir()];
+    dirs.extend(glib::system_data_dirs());
+    if icon_installed(&dirs, APP_ID) {
+        APP_ID.into()
+    } else {
+        String::new()
+    }
+}
+
+/// Whether `name` is in the hicolor theme under one of `data_dirs`, where
+/// `make install` puts it.
+fn icon_installed(data_dirs: &[PathBuf], name: &str) -> bool {
+    let file = format!("{name}.svg");
+    data_dirs
+        .iter()
+        .any(|d| d.join("icons/hicolor/scalable/apps").join(&file).is_file())
+}
+
 /// A color wheel as an ARGB32 (network byte order) tray icon, used when
 /// the icon theme has no Colorz icon (e.g. when not installed).
 fn wheel_icon(size: u32) -> Icon {
@@ -312,6 +339,19 @@ mod tests {
             .to_rgb8();
         assert_eq!(img.dimensions(), (SWATCH_SIZE, SWATCH_SIZE));
         assert!(img.pixels().all(|p| p.0 == [0x34, 0x78, 0xF6]));
+    }
+
+    #[test]
+    fn icon_installed_looks_in_hicolor() {
+        let dir = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let dirs = [other.path().to_owned(), dir.path().to_owned()];
+        assert!(!icon_installed(&dirs, "a.b.C"));
+        let apps = dir.path().join("icons/hicolor/scalable/apps");
+        std::fs::create_dir_all(&apps).unwrap();
+        std::fs::write(apps.join("a.b.C.svg"), "<svg/>").unwrap();
+        assert!(icon_installed(&dirs, "a.b.C"));
+        assert!(!icon_installed(&dirs, "a.b.D"));
     }
 
     #[test]
