@@ -1,5 +1,6 @@
 [package]
 name = "colorz"
+description = "Color picker for the GNOME tray, with a color wheel and palettes"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -21,3 +22,21 @@ glib-build-tools = "0.22"
 
 [dev-dependencies]
 tempfile.workspace = true
+
+# `cargo deb -p colorz` (see `make deb`) builds the Debian package.
+[package.metadata.deb]
+maintainer = "Ogi Tsonev <1656661+partty@users.noreply.github.com>"
+copyright = "2026 Ogi Tsonev"
+section = "graphics"
+extended-description = """\
+Pick any pixel on screen through the desktop portal, copy the color as HEX, \
+RGB, HSL, HSV, OKLCH, OKLab or color(), fine-tune it on a color wheel, and \
+keep named palettes with CSS and GIMP import and export."""
+depends = "$auto"
+recommends = "xdg-desktop-portal-gnome, gnome-shell-extension-appindicator"
+assets = [
+    ["target/release/colorz", "usr/bin/", "755"],
+    ["../data/io.github.partty.Colorz.desktop", "usr/share/applications/", "644"],
+    ["../data/io.github.partty.Colorz.svg", "usr/share/icons/hicolor/scalable/apps/", "644"],
+    ["../README.md", "usr/share/doc/colorz/", "644"],
+]

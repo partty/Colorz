@@ -47,6 +47,7 @@ format you need, fine-tune it on a color wheel, and keep named palettes.
 make build       # cargo build --release
 make test        # cargo test --workspace
 make lint        # clippy -D warnings + fmt --check
+make deb         # Debian package in target/debian (needs cargo-deb)
 make install     # build, then install under PREFIX (default ~/.local)
 make uninstall
 ```
@@ -56,6 +57,19 @@ make uninstall
 `~/.local/share/icons/hicolor/scalable/apps`. Make sure `~/.local/bin` is on
 your `PATH`. Use `make install PREFIX=/usr/local` (with suitable permissions)
 for another location.
+
+### Debian package
+
+`make deb` builds `target/debian/colorz_<version>-1_amd64.deb` with
+[cargo-deb](https://github.com/kornelski/cargo-deb)
+(`cargo install cargo-deb`). It installs to `/usr` and depends on the
+libraries it was built against, so build it on the Ubuntu release you
+target. Install it with `sudo apt install ./target/debian/colorz_*.deb`.
+
+GitHub Actions runs format, lint and tests on every push and pull request,
+and builds the `.deb` on Ubuntu 26.04 (download it from the run's
+artifacts). Pushing a tag `v<version>` matching the `Cargo.toml` version
+also attaches the `.deb` to a GitHub release.
 
 Install before relying on the global shortcut or notifications: both need the
 installed `.desktop` file (app ID `io.github.partty.Colorz`).

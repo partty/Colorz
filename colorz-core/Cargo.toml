@@ -1,5 +1,6 @@
 [package]
 name = "colorz-core"
+description = "Color math, formats, ICC conversion and palette storage for Colorz"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

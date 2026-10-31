@@ -8,7 +8,7 @@ BINDIR := $(PREFIX)/bin
 APPDIR := $(PREFIX)/share/applications
 ICONDIR := $(PREFIX)/share/icons/hicolor/scalable/apps
 
-.PHONY: build test lint install uninstall
+.PHONY: build test lint deb install uninstall
 
 build:
 	$(CARGO) build --release
@@ -19,6 +19,10 @@ test:
 lint:
 	$(CARGO) clippy --workspace --all-targets -- -D warnings
 	$(CARGO) fmt --all --check
+
+# Needs cargo-deb (`cargo install cargo-deb`); writes target/debian/*.deb.
+deb:
+	$(CARGO) deb -p colorz --locked
 
 install: build
 	install -Dm755 target/release/colorz $(BINDIR)/colorz
