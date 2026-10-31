@@ -4,6 +4,24 @@ A color picker for the GNOME tray, written in Rust with GTK4 and libadwaita.
 Pick any pixel on screen with the system picker, see and copy the color in the
 format you need, fine-tune it on a color wheel, and keep named palettes.
 
+| Pick | Wheel | Palettes |
+|------|-------|----------|
+| <img src="docs/screenshots/pick.png" width="260" alt="Pick tab: the picked color, recent picks, the active palette and every format with copy buttons"> | <img src="docs/screenshots/wheel.png" width="260" alt="Wheel tab: a triad harmony on the color wheel, a card per harmony color, and the channel sliders"> | <img src="docs/screenshots/palettes.png" width="260" alt="Palettes tab: a searchable list of palettes with a strip of their colors"> |
+| Pick from the screen (Super+Shift+C, the tray or the Pick button). The color shows in every format, each with a copy button; recent picks and the active palette sit right below. | Fine-tune on a ring, OKLCH or OKHSL wheel, or with the sliders. Choose a harmony to get matching colors, each with its own card to copy, and add them to a palette in one click. | Keep named palettes, search them, build them from an image, and import or export CSS variables and GIMP `.gpl` files. |
+
+## Download
+
+[**Download the latest .deb**](https://github.com/partty/Colorz/releases/latest/download/colorz_amd64.deb)
+(Ubuntu 26.04 or newer, x86-64), or browse all
+[releases](https://github.com/partty/Colorz/releases). Install it with:
+
+```
+sudo apt install ./colorz_amd64.deb
+```
+
+For the tray icon, keep the "Ubuntu AppIndicators" extension enabled (it is on
+by default on Ubuntu).
+
 ## Features
 
 - Screen picking through the XDG Screenshot portal (Wayland-friendly), from a
@@ -210,6 +228,8 @@ colorz/src        GTK4/libadwaita app
   platform/       pick (portal), shortcuts, tray, clipboard, notify, autostart
   ui/             window, pick page, wheel page, palettes page, settings, dialogs
 data/             desktop file, icon and the resource list that bundles it
+docs/screenshots  README screenshots
+.github/          CI: tests and the .deb build, releases on tags
 Makefile
 ```
 

@@ -81,6 +81,11 @@ jobs:
           name: colorz-deb
           path: dist
 
+      # A copy with a fixed name gives the README a stable link:
+      # releases/latest/download/colorz_amd64.deb
+      - name: Add a version-free copy
+        run: cp dist/colorz_*_amd64.deb dist/colorz_amd64.deb
+
       # GitHub's own CLI, so no third-party code runs with write access.
       - name: Create the release
         env:
