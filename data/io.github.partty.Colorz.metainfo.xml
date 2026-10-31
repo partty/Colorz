@@ -55,6 +55,18 @@
       <caption>Keep and search named palettes</caption>
       <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/palettes.png</image>
     </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>Pick a color and copy it in any format (dark style)</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/pick-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>Fine-tune on the color wheel and find harmonies (dark style)</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/wheel-dark.png</image>
+    </screenshot>
+    <screenshot environment="gnome:dark">
+      <caption>Keep and search named palettes (dark style)</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/palettes-dark.png</image>
+    </screenshot>
   </screenshots>
 
   <url type="homepage">https://github.com/partty/Colorz</url>
