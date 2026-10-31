@@ -244,14 +244,20 @@ fn half_swatch(rgb: Rc<Cell<[u8; 3]>>, left: bool) -> gtk::DrawingArea {
     area
 }
 
-/// List items as plain labels; `ellipsize` lets the drop-down button
-/// shrink in a narrow window.
-fn label_factory(ellipsize: bool) -> gtk::SignalListItemFactory {
+/// Width, in characters, of the harmony drop-down button's label.
+const HARMONY_BUTTON_CHARS: i32 = 14;
+
+/// List items as plain labels. On the drop-down `button` the label has a
+/// fixed width and ends long names with "…", so the side column keeps its
+/// width whatever is selected; the list shows names in full.
+fn label_factory(button: bool) -> gtk::SignalListItemFactory {
     let factory = gtk::SignalListItemFactory::new();
     factory.connect_setup(move |_, item| {
         if let Some(item) = item.downcast_ref::<gtk::ListItem>() {
             let label = gtk::Label::builder().xalign(0.0).build();
-            if ellipsize {
+            if button {
+                label.set_width_chars(HARMONY_BUTTON_CHARS);
+                label.set_max_width_chars(HARMONY_BUTTON_CHARS);
                 label.set_ellipsize(pango::EllipsizeMode::End);
             }
             item.set_child(Some(&label));
@@ -322,8 +328,10 @@ impl WheelPage {
             );
         }
         toggles.set_active_name(Some(mode_name(WheelMode::Ring)));
-        toggles.set_halign(gtk::Align::Center);
-        toggles.set_margin_top(12);
+        // A column beside the wheel, where there is spare width, rather
+        // than a row above it taking height from the wheel.
+        toggles.set_orientation(gtk::Orientation::Vertical);
+        toggles.set_homogeneous(true);
 
         let view = WheelView::new();
         // Floats over the wheel's top-left corner, so showing it never
@@ -338,13 +346,22 @@ impl WheelPage {
             .build();
         out_of_gamut.append(&gtk::Image::from_icon_name("dialog-warning-symbolic"));
         out_of_gamut.append(&gtk::Label::new(Some("Outside sRGB")));
-        let wheel_area = gtk::Overlay::builder()
-            .child(&view)
-            .margin_top(6)
+        let wheel_area = gtk::Overlay::builder().child(&view).hexpand(true).build();
+        wheel_area.add_overlay(&out_of_gamut);
+        let wheel_row = gtk::Box::builder()
+            .spacing(12)
+            .margin_top(12)
             .margin_start(12)
             .margin_end(12)
             .build();
-        wheel_area.add_overlay(&out_of_gamut);
+        let side = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(18)
+            .valign(gtk::Align::Center)
+            .build();
+        side.append(&toggles);
+        wheel_row.append(&side);
+        wheel_row.append(&wheel_area);
 
         let current = state.current();
         let before_rgb = Rc::new(Cell::new(current.to_srgb8()));
@@ -425,13 +442,14 @@ impl WheelPage {
         harmony.update_property(&[gtk::accessible::Property::Label("Harmony")]);
         let harmony_label = gtk::Label::builder()
             .label("Harmony")
-            .css_classes(["dim-label"])
-            .hexpand(true)
-            .xalign(1.0)
+            .css_classes(["dim-label", "caption"])
+            .xalign(0.0)
             .build();
-        let harmony_row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-        harmony_row.append(&harmony_label);
-        harmony_row.append(&harmony);
+        let harmony_box = gtk::Box::new(gtk::Orientation::Vertical, 4);
+        harmony_box.append(&harmony_label);
+        harmony_box.append(&harmony);
+        // Wheel settings sit beside the wheel, next to what they change.
+        side.append(&harmony_box);
 
         let controls = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -444,10 +462,8 @@ impl WheelPage {
         controls.append(&value_stack);
         controls.append(&sliders_box);
         controls.append(bar.widget());
-        controls.append(&harmony_row);
         let page = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        page.append(&toggles);
-        page.append(&wheel_area);
+        page.append(&wheel_row);
         page.append(&controls);
         // Scrolls when the window is too short for everything; the wheel
         // still takes the free space when there is room.
