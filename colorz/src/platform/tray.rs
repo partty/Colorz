@@ -253,15 +253,21 @@ fn swatch_png(rgb: [u8; 3]) -> Vec<u8> {
 /// The app's icon name when an icon theme directory has it, else empty.
 /// GNOME's AppIndicator extension shows a placeholder for a name it cannot
 /// find instead of using the pixmap, so the name is only sent when the
-/// icon is installed.
+/// icon is installed. In a snap or Flatpak the app's own icon directories
+/// are not the shell's, so the pixmap is always used there.
 fn themed_icon_name() -> String {
     let mut dirs = vec![glib::user_data_dir()];
     dirs.extend(glib::system_data_dirs());
-    if icon_installed(&dirs, APP_ID) {
+    if !sandboxed() && icon_installed(&dirs, APP_ID) {
         APP_ID.into()
     } else {
         String::new()
     }
+}
+
+/// Whether this runs as a snap or a Flatpak.
+fn sandboxed() -> bool {
+    std::env::var_os("SNAP").is_some() || std::env::var_os("FLATPAK_ID").is_some()
 }
 
 /// Whether `name` is in the hicolor theme under one of `data_dirs`, where

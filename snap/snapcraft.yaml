@@ -1,0 +1,65 @@
+name: colorz
+title: Colorz
+# Summary, description, icon and links come from the AppStream metainfo.
+adopt-info: colorz
+base: core26
+grade: stable
+confinement: strict
+license: GPL-3.0-or-later
+icon: data/io.github.partty.Colorz.svg
+
+platforms:
+  amd64:
+
+slots:
+  # GApplication owns its app ID on the session bus; a strict snap may only
+  # own names it declares.
+  colorz-dbus:
+    interface: dbus
+    bus: session
+    name: io.github.partty.Colorz
+
+apps:
+  colorz:
+    command: bin/colorz
+    # GTK 4.24 / libadwaita 1.10 from the gnome-core26 runtime.
+    extensions: [gnome]
+    common-id: io.github.partty.Colorz
+    desktop: usr/share/applications/io.github.partty.Colorz.desktop
+    # snapd starts the app at login when this file is in the snap's
+    # ~/.config/autostart, which Settings → Start at login writes.
+    autostart: io.github.partty.Colorz.desktop
+    environment:
+      # Notifications through the portal: GNOME Shell knows the app by its
+      # snap desktop file, not by the GApplication ID.
+      GTK_USE_PORTAL: "1"
+    plugs:
+      # The "Use GNOME keyboard shortcut instead" fallback writes a GNOME
+      # custom keybinding.
+      - gsettings
+    slots:
+      - colorz-dbus
+
+parts:
+  colorz:
+    plugin: rust
+    source: .
+    rust-path: [colorz]
+    build-packages:
+      - liblcms2-dev
+      - pkg-config
+    stage-packages:
+      - liblcms2-2
+    override-pull: |
+      craftctl default
+      craftctl set version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)"
+    override-build: |
+      craftctl default
+      install -Dm644 data/io.github.partty.Colorz.desktop \
+        "$CRAFT_PART_INSTALL/usr/share/applications/io.github.partty.Colorz.desktop"
+      install -Dm644 data/io.github.partty.Colorz.svg \
+        "$CRAFT_PART_INSTALL/usr/share/icons/hicolor/scalable/apps/io.github.partty.Colorz.svg"
+      install -Dm644 data/io.github.partty.Colorz.metainfo.xml \
+        "$CRAFT_PART_INSTALL/usr/share/metainfo/io.github.partty.Colorz.metainfo.xml"
+    parse-info:
+      - usr/share/metainfo/io.github.partty.Colorz.metainfo.xml

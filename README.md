@@ -89,6 +89,23 @@ and builds the `.deb` on Ubuntu 26.04 (download it from the run's
 artifacts). Pushing a tag `v<version>` matching the `Cargo.toml` version
 also attaches the `.deb` to a GitHub release.
 
+### Snap
+
+`snap/snapcraft.yaml` packages Colorz as a strictly confined snap on `core26`
+with the GNOME extension. CI builds it on every push (download it from the
+run's artifacts and try it with `sudo snap install --dangerous colorz_*.snap`).
+On a `v<version>` tag it is uploaded to the Snap Store's stable channel when
+the repository secret `SNAPCRAFT_STORE_CREDENTIALS` is set. One-time setup:
+
+1. Register the name: `snapcraft register colorz` (or on snapcraft.io).
+2. Create a store login for CI:
+   `snapcraft export-login --snaps=colorz --channels=stable --acls package_access,package_push,package_update,package_release -`
+3. Save its output as the `SNAPCRAFT_STORE_CREDENTIALS` secret:
+   `gh secret set SNAPCRAFT_STORE_CREDENTIALS < login.txt`
+
+The snap keeps its settings and palettes under `~/snap/colorz/current/`, not
+`~/.config/colorz` and `~/.local/share/colorz`.
+
 Install before relying on the global shortcut or notifications: both need the
 installed `.desktop` file (app ID `io.github.partty.Colorz`).
 
@@ -229,7 +246,8 @@ colorz/src        GTK4/libadwaita app
   ui/             window, pick page, wheel page, palettes page, settings, dialogs
 data/             desktop file, icon, AppStream metainfo, icon resource list
 docs/screenshots  README screenshots
-.github/          CI: tests and the .deb build, releases on tags
+.github/          CI: tests, .deb and snap builds, releases on tags
+snap/             snapcraft.yaml
 Makefile
 ```
 
