@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2026 Ogi Tsonev -->
+<component type="desktop-application">
+  <id>io.github.partty.Colorz</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+
+  <name>Colorz</name>
+  <summary>Pick colors from the screen and keep palettes</summary>
+  <developer id="io.github.partty">
+    <name>Ogi Tsonev</name>
+  </developer>
+
+  <description>
+    <p>
+      Colorz is a color picker that lives in the GNOME top bar. Pick any pixel
+      on screen with a global shortcut, copy it in the format you need,
+      fine-tune it on a color wheel, and collect it into named palettes.
+    </p>
+    <p>Picking and copying:</p>
+    <ul>
+      <li>Pick from any app through the desktop portal, from a shortcut (Super+Shift+C), the tray menu or the Pick button</li>
+      <li>Copy as HEX, RGB, HSL, HSV, OKLCH, OKLab or CSS color(), with or without the function wrapper</li>
+      <li>Convert on copy to Display P3, Adobe RGB or a custom ICC profile, with a warning for out-of-gamut colors</li>
+      <li>Paste any CSS color to load it, and keep a history of recent picks</li>
+    </ul>
+    <p>Color wheel:</p>
+    <ul>
+      <li>Ring, OKLCH and OKHSL wheels with per-channel sliders and keyboard nudging</li>
+      <li>Complementary, analogous, triad and split-complementary harmonies, each color ready to copy</li>
+    </ul>
+    <p>Palettes:</p>
+    <ul>
+      <li>Named palettes with labels and CSS variable names, added to in one click from the Pick and Wheel tabs</li>
+      <li>Edit a palette color on the wheel or replace it with a new pick, with undo</li>
+      <li>Import and export CSS variables and GIMP palettes, or extract a palette from an image</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.partty.Colorz.desktop</launchable>
+  <provides>
+    <binary>colorz</binary>
+  </provides>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Pick a color and copy it in any format</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/pick.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Fine-tune on the color wheel and find harmonies</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/wheel.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Keep and search named palettes</caption>
+      <image>https://raw.githubusercontent.com/partty/Colorz/main/docs/screenshots/palettes.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/partty/Colorz</url>
+  <url type="bugtracker">https://github.com/partty/Colorz/issues</url>
+  <url type="vcs-browser">https://github.com/partty/Colorz</url>
+
+  <categories>
+    <category>Graphics</category>
+  </categories>
+  <keywords>
+    <keyword>color</keyword>
+    <keyword>colour</keyword>
+    <keyword>picker</keyword>
+    <keyword>eyedropper</keyword>
+    <keyword>palette</keyword>
+  </keywords>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#a8d8ff</color>
+    <color type="primary" scheme_preference="dark">#1e3a5f</color>
+  </branding>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="0.1.1" date="2026-10-31">
+      <description>
+        <p>Packaging update: app details, screenshots and a fuller package description for software centers.</p>
+      </description>
+    </release>
+    <release version="0.1.0" date="2026-10-31">
+      <description>
+        <p>First release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

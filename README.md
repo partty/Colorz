@@ -227,7 +227,7 @@ colorz/src        GTK4/libadwaita app
   app.rs, state.rs, main.rs   application, actions, shared state
   platform/       pick (portal), shortcuts, tray, clipboard, notify, autostart
   ui/             window, pick page, wheel page, palettes page, settings, dialogs
-data/             desktop file, icon and the resource list that bundles it
+data/             desktop file, icon, AppStream metainfo, icon resource list
 docs/screenshots  README screenshots
 .github/          CI: tests and the .deb build, releases on tags
 Makefile

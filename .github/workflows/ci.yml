@@ -27,7 +27,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libgtk-4-dev libadwaita-1-dev liblcms2-dev
+            libgtk-4-dev libadwaita-1-dev liblcms2-dev \
+            appstream desktop-file-utils
+
+      - name: Validate desktop and AppStream files
+        run: |
+          desktop-file-validate data/io.github.partty.Colorz.desktop
+          appstreamcli validate --no-net data/io.github.partty.Colorz.metainfo.xml
 
       - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
