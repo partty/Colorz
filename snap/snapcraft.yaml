@@ -6,6 +6,7 @@ base: core26
 grade: stable
 confinement: strict
 license: GPL-3.0-or-later
+contact: https://github.com/partty/Colorz/issues
 icon: data/io.github.partty.Colorz.svg
 
 platforms:
