@@ -142,3 +142,40 @@ jobs:
       - name: Note the missing store login
         if: env.SNAPCRAFT_STORE_CREDENTIALS == ''
         run: echo "::warning::SNAPCRAFT_STORE_CREDENTIALS is not set; the snap was not published."
+
+  store-listing:
+    name: Update Snap Store listing
+    # Release tags, or by hand from the Actions tab.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    needs: snap
+    runs-on: ubuntu-latest
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+    steps:
+      - name: Note the missing store login
+        if: env.SNAPCRAFT_STORE_CREDENTIALS == ''
+        run: echo "::warning::SNAPCRAFT_STORE_CREDENTIALS is not set; the listing was not updated."
+
+      - uses: actions/checkout@v7
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+
+      - uses: actions/download-artifact@v8
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        with:
+          name: colorz-snap
+          path: dist
+
+      # Title, summary, description, license and icon, from the snap.
+      - name: Upload text metadata and icon
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        run: |
+          sudo snap install snapcraft --classic
+          snapcraft upload-metadata --force dist/*.snap
+
+      # Categories, links, banner and screenshots, from snap/local/store-listing.yaml.
+      - name: Upload categories, banner and screenshots
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install craft-store==3.4.0 pyyaml==6.0.3
+          "$RUNNER_TEMP/venv/bin/python" snap/local/push-store-listing.py

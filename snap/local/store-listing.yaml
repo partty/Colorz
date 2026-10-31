@@ -1,0 +1,27 @@
+# Snap Store listing fields that snapcraft.yaml cannot hold. CI pushes them
+# with snap/local/push-store-listing.py on every release tag (or run it by hand
+# with SNAPCRAFT_STORE_CREDENTIALS set). Paths are relative to the repo root.
+#
+# Summary, description, title, license and icon come from the snap itself
+# (`snapcraft upload-metadata`), which takes them from snapcraft.yaml and the
+# AppStream metainfo.
+
+# Store categories; the first one is the primary category. Valid names:
+# https://api.snapcraft.io/v2/snaps/categories
+categories:
+  - art-and-design
+  - development
+
+contact: https://github.com/partty/Colorz/issues
+website: https://github.com/partty/Colorz
+
+# 3:1, 720x240 to 4320x1440, PNG or JPEG, under 2 MB.
+banner: docs/store/banner.png
+
+# At most 5, shown in this order. 480x480 to 4320x2160 each.
+screenshots:
+  - docs/screenshots/pick.png
+  - docs/screenshots/wheel.png
+  - docs/screenshots/palettes.png
+  - docs/screenshots/wheel-dark.png
+  - docs/screenshots/pick-dark.png

@@ -103,6 +103,12 @@ the repository secret `SNAPCRAFT_STORE_CREDENTIALS` is set. One-time setup:
 3. Save its output as the `SNAPCRAFT_STORE_CREDENTIALS` secret:
    `gh secret set SNAPCRAFT_STORE_CREDENTIALS < login.txt`
 
+The store listing is kept in the repo too. `snap/snapcraft.yaml` and the
+AppStream metainfo give the title, summary, description, icon and links;
+`snap/local/store-listing.yaml` gives the categories, banner and screenshots.
+The "Update Snap Store listing" CI job pushes both on every release tag, or
+by hand from the Actions tab (Run workflow).
+
 The snap keeps its settings and palettes under `~/snap/colorz/current/`, not
 `~/.config/colorz` and `~/.local/share/colorz`.
 
@@ -247,7 +253,7 @@ colorz/src        GTK4/libadwaita app
 data/             desktop file, icon, AppStream metainfo, icon resource list
 docs/screenshots  README screenshots
 .github/          CI: tests, .deb and snap builds, releases on tags
-snap/             snapcraft.yaml
+snap/             snapcraft.yaml; local/ holds the store listing and its upload script
 Makefile
 ```
 
