@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Colorz app icon: a 12-segment hue wheel with a white center. -->
+  <path fill="#F22424" d="M64 64L48.47 6.04A60 60 0 0 1 79.53 6.04Z"/>
+  <path fill="#F28B24" d="M64 64L79.53 6.04A60 60 0 0 1 106.43 21.57Z"/>
+  <path fill="#F2F224" d="M64 64L106.43 21.57A60 60 0 0 1 121.96 48.47Z"/>
+  <path fill="#8BF224" d="M64 64L121.96 48.47A60 60 0 0 1 121.96 79.53Z"/>
+  <path fill="#24F224" d="M64 64L121.96 79.53A60 60 0 0 1 106.43 106.43Z"/>
+  <path fill="#24F28B" d="M64 64L106.43 106.43A60 60 0 0 1 79.53 121.96Z"/>
+  <path fill="#24F2F2" d="M64 64L79.53 121.96A60 60 0 0 1 48.47 121.96Z"/>
+  <path fill="#248BF2" d="M64 64L48.47 121.96A60 60 0 0 1 21.57 106.43Z"/>
+  <path fill="#2424F2" d="M64 64L21.57 106.43A60 60 0 0 1 6.04 79.53Z"/>
+  <path fill="#8B24F2" d="M64 64L6.04 79.53A60 60 0 0 1 6.04 48.47Z"/>
+  <path fill="#F224F2" d="M64 64L6.04 48.47A60 60 0 0 1 21.57 21.57Z"/>
+  <path fill="#F2248B" d="M64 64L21.57 21.57A60 60 0 0 1 48.47 6.04Z"/>
+  <circle cx="64" cy="64" r="60" fill="none" stroke="#000" stroke-opacity="0.15" stroke-width="2"/>
+  <circle cx="64" cy="64" r="24" fill="#FFF" stroke="#000" stroke-opacity="0.15" stroke-width="2"/>
+</svg>

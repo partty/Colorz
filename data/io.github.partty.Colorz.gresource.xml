@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Bundles the app icon so it shows without installation. -->
+<gresources>
+  <gresource prefix="/io/github/partty/Colorz/icons/scalable/apps">
+    <file preprocess="xml-stripblanks">io.github.partty.Colorz.svg</file>
+  </gresource>
+</gresources>

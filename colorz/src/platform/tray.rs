@@ -1,0 +1,327 @@
+//! The StatusNotifierItem tray icon (shown by GNOME's AppIndicator
+//! extension).
+//!
+//! ksni runs the item on its own executor thread, so the tray only holds
+//! plain data ([`TrayModel`]) and sends [`TrayEvent`]s to the GTK main
+//! loop; it never touches GTK objects.
+
+use std::io::Cursor;
+
+use colorz_core::wheel::render_okhsl_disc;
+use gtk::glib;
+use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
+use ksni::menu::{CheckmarkItem, StandardItem, SubMenu};
+use ksni::{Icon, MenuItem, OfflineReason, TrayMethods};
+
+use crate::APP_ID;
+
+/// Most recent picks listed in the menu.
+const MAX_RECENT: usize = 5;
+/// Edge length of the fallback tray icon and of the menu swatches.
+const ICON_SIZE: u32 = 32;
+const SWATCH_SIZE: u32 = 16;
+/// OKHSL lightness of the fallback icon's color wheel.
+const ICON_LIGHTNESS: f64 = 0.65;
+
+/// What the user chose in the tray, handled on the GTK main loop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrayCommand {
+    Open,
+    Pick,
+    Paste,
+    ToggleChrome,
+    /// Copy history entry `i` in the default format.
+    CopyRecent(usize),
+    Quit,
+}
+
+impl TrayCommand {
+    /// Whether the command may show a window, which on Wayland needs the
+    /// click's activation token to get focus.
+    fn presents(self) -> bool {
+        !matches!(self, TrayCommand::ToggleChrome | TrayCommand::Quit)
+    }
+}
+
+/// A [`TrayCommand`] with the XDG activation token of the click, if the
+/// tray host provided one.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrayEvent {
+    pub command: TrayCommand,
+    pub token: Option<String>,
+}
+
+/// Everything the menu shows.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TrayModel {
+    /// (hex label, sRGB) of the recent picks, newest first.
+    pub recent: Vec<(String, [u8; 3])>,
+    /// Whether "Correct picks from Chrome" is on.
+    pub chrome: bool,
+    /// How the pick shortcut is triggered; empty when there is none.
+    pub shortcut_label: String,
+}
+
+/// Updates the tray from the GTK main loop.
+pub struct TrayHandle {
+    models: async_channel::Sender<TrayModel>,
+}
+
+impl TrayHandle {
+    /// Replaces what the tray shows.
+    pub fn update(&self, model: TrayModel) {
+        // Fails only when the tray could not be started.
+        let _ = self.models.try_send(model);
+    }
+}
+
+/// Starts the tray icon. Its events arrive on `sender`. When there
+/// is no tray host the failure is logged and the app runs without one.
+pub fn spawn(sender: async_channel::Sender<TrayEvent>, model: TrayModel) -> TrayHandle {
+    let (models, updates) = async_channel::unbounded::<TrayModel>();
+    glib::spawn_future_local(async move {
+        let tray = ColorzTray::new(sender, model);
+        // The AppIndicator extension may still be starting at login; the
+        // tray then shows up once it is ready.
+        let handle = match tray.assume_sni_available(true).spawn().await {
+            Ok(handle) => handle,
+            Err(e) => {
+                eprintln!("colorz: cannot show the tray icon: {e}");
+                updates.close();
+                return;
+            }
+        };
+        while let Ok(mut model) = updates.recv().await {
+            // Only the newest model matters.
+            while let Ok(newer) = updates.try_recv() {
+                model = newer;
+            }
+            let swatches = swatches(&model);
+            handle
+                .update(move |t| {
+                    t.model = model;
+                    t.swatches = swatches;
+                })
+                .await;
+        }
+    });
+    TrayHandle { models }
+}
+
+struct ColorzTray {
+    events: async_channel::Sender<TrayEvent>,
+    model: TrayModel,
+    /// PNG swatch for each of the first [`MAX_RECENT`] recent picks.
+    swatches: Vec<Vec<u8>>,
+    icon: Icon,
+}
+
+impl ColorzTray {
+    fn new(events: async_channel::Sender<TrayEvent>, model: TrayModel) -> ColorzTray {
+        ColorzTray {
+            events,
+            swatches: swatches(&model),
+            model,
+            icon: wheel_icon(ICON_SIZE),
+        }
+    }
+
+    /// Runs inside the click callback, where ksni knows the click's token.
+    /// Read once: a token arriving late is attached by a D-Bus handler on
+    /// the executor this callback is blocking, so waiting here cannot see it.
+    fn send(&self, command: TrayCommand) {
+        let token = command
+            .presents()
+            .then(ksni::current_xdg_activation_token)
+            .flatten();
+        let event = TrayEvent { command, token };
+        // Unbounded: fails only once the app is shutting down.
+        let _ = self.events.try_send(event);
+    }
+
+    fn item(label: &str, cmd: TrayCommand) -> MenuItem<Self> {
+        StandardItem {
+            label: label.to_owned(),
+            activate: Box::new(move |t: &mut Self| t.send(cmd)),
+            ..Default::default()
+        }
+        .into()
+    }
+}
+
+impl ksni::Tray for ColorzTray {
+    fn id(&self) -> String {
+        "colorz".into()
+    }
+
+    fn title(&self) -> String {
+        "Colorz".into()
+    }
+
+    fn icon_name(&self) -> String {
+        APP_ID.into()
+    }
+
+    fn icon_pixmap(&self) -> Vec<Icon> {
+        vec![self.icon.clone()]
+    }
+
+    fn activate(&mut self, _x: i32, _y: i32) {
+        self.send(TrayCommand::Open);
+    }
+
+    fn menu(&self) -> Vec<MenuItem<Self>> {
+        let recent: Vec<MenuItem<Self>> = recent_labels(&self.model)
+            .into_iter()
+            .zip(&self.swatches)
+            .enumerate()
+            .map(|(i, (label, swatch))| {
+                StandardItem {
+                    label,
+                    icon_data: swatch.clone(),
+                    activate: Box::new(move |t: &mut Self| t.send(TrayCommand::CopyRecent(i))),
+                    ..Default::default()
+                }
+                .into()
+            })
+            .collect();
+        vec![
+            Self::item(&pick_label(&self.model), TrayCommand::Pick),
+            Self::item("Paste color", TrayCommand::Paste),
+            CheckmarkItem {
+                label: "Correct picks from Chrome".into(),
+                checked: self.model.chrome,
+                activate: Box::new(|t: &mut Self| t.send(TrayCommand::ToggleChrome)),
+                ..Default::default()
+            }
+            .into(),
+            MenuItem::Separator,
+            SubMenu {
+                label: "Recent picks".into(),
+                enabled: !recent.is_empty(),
+                submenu: recent,
+                ..Default::default()
+            }
+            .into(),
+            MenuItem::Separator,
+            Self::item("Open Colorz", TrayCommand::Open),
+            Self::item("Quit", TrayCommand::Quit),
+        ]
+    }
+
+    fn watcher_offline(&self, reason: OfflineReason) -> bool {
+        eprintln!("colorz: the tray icon is not shown: {reason:?}");
+        // Keep waiting; the icon comes back when a tray host appears.
+        true
+    }
+}
+
+/// `Pick color`, followed by the shortcut when there is one.
+fn pick_label(model: &TrayModel) -> String {
+    if model.shortcut_label.is_empty() {
+        "Pick color".into()
+    } else {
+        format!("Pick color  {}", model.shortcut_label)
+    }
+}
+
+/// Labels of the recent picks the menu lists.
+fn recent_labels(model: &TrayModel) -> Vec<String> {
+    let recent = model.recent.iter().take(MAX_RECENT);
+    recent.map(|(hex, _)| hex.clone()).collect()
+}
+
+fn swatches(model: &TrayModel) -> Vec<Vec<u8>> {
+    let recent = model.recent.iter().take(MAX_RECENT);
+    recent.map(|&(_, rgb)| swatch_png(rgb)).collect()
+}
+
+/// A `SWATCH_SIZE` square of `rgb`, as PNG.
+fn swatch_png(rgb: [u8; 3]) -> Vec<u8> {
+    let pixels = rgb.repeat((SWATCH_SIZE * SWATCH_SIZE) as usize);
+    let mut png = Vec::new();
+    PngEncoder::new(Cursor::new(&mut png))
+        .write_image(&pixels, SWATCH_SIZE, SWATCH_SIZE, ExtendedColorType::Rgb8)
+        .expect("encoding a PNG in memory cannot fail");
+    png
+}
+
+/// A color wheel as an ARGB32 (network byte order) tray icon, used when
+/// the icon theme has no Colorz icon (e.g. when not installed).
+fn wheel_icon(size: u32) -> Icon {
+    let rgba = render_okhsl_disc(size, ICON_LIGHTNESS);
+    let data = rgba
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|&[r, g, b, a]| [a, r, g, b])
+        .collect();
+    Icon {
+        width: size as i32,
+        height: size as i32,
+        data,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn model(n: usize) -> TrayModel {
+        TrayModel {
+            recent: (0..n)
+                .map(|i| (format!("#0000{i:02X}"), [0, 0, i as u8]))
+                .collect(),
+            chrome: false,
+            shortcut_label: String::new(),
+        }
+    }
+
+    #[test]
+    fn tray_menu_model() {
+        assert!(recent_labels(&model(0)).is_empty());
+        assert_eq!(recent_labels(&model(2)), ["#000000", "#000001"]);
+        assert_eq!(
+            recent_labels(&model(8)),
+            ["#000000", "#000001", "#000002", "#000003", "#000004"]
+        );
+        assert_eq!(swatches(&model(8)).len(), 5);
+        assert_eq!(pick_label(&model(0)), "Pick color");
+        let bound = TrayModel {
+            shortcut_label: "Shift+Super+C".into(),
+            ..model(0)
+        };
+        assert_eq!(pick_label(&bound), "Pick color  Shift+Super+C");
+    }
+
+    #[test]
+    fn only_window_commands_want_a_token() {
+        assert!(TrayCommand::Open.presents());
+        assert!(TrayCommand::Pick.presents());
+        assert!(TrayCommand::Paste.presents());
+        assert!(TrayCommand::CopyRecent(0).presents());
+        assert!(!TrayCommand::ToggleChrome.presents());
+        assert!(!TrayCommand::Quit.presents());
+    }
+
+    #[test]
+    fn swatch_is_a_png_of_the_color() {
+        let png = swatch_png([0x34, 0x78, 0xF6]);
+        let img = image::load_from_memory_with_format(&png, image::ImageFormat::Png)
+            .unwrap()
+            .to_rgb8();
+        assert_eq!(img.dimensions(), (SWATCH_SIZE, SWATCH_SIZE));
+        assert!(img.pixels().all(|p| p.0 == [0x34, 0x78, 0xF6]));
+    }
+
+    #[test]
+    fn wheel_icon_is_argb() {
+        let icon = wheel_icon(ICON_SIZE);
+        assert_eq!((icon.width, icon.height), (32, 32));
+        assert_eq!(icon.data.len(), 32 * 32 * 4);
+        // Transparent corner, opaque center (alpha comes first).
+        assert_eq!(icon.data[0], 0);
+        let center = ((16 * 32 + 16) * 4) as usize;
+        assert_eq!(icon.data[center], 255);
+    }
+}

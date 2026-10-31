@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Colorz
+Comment=Pick colors from the screen and keep palettes
+Exec=colorz
+Icon=io.github.partty.Colorz
+Terminal=false
+Categories=Graphics;Utility;
+Keywords=color;colour;picker;eyedropper;palette;
+DBusActivatable=false
+StartupNotify=true
+X-GNOME-UsesNotifications=true

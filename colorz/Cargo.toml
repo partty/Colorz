@@ -1,0 +1,23 @@
+[package]
+name = "colorz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+colorz-core = { path = "../colorz-core" }
+gtk.workspace = true
+adw.workspace = true
+ashpd.workspace = true
+async-channel.workspace = true
+dirs.workspace = true
+futures-util.workspace = true
+image.workspace = true
+ksni.workspace = true
+
+[build-dependencies]
+glib-build-tools = "0.22"
+
+[dev-dependencies]
+tempfile.workspace = true
