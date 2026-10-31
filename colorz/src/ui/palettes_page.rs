@@ -1,7 +1,7 @@
 //! The Palettes tab: a searchable list of palettes that opens the palette
 //! view.
 
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use adw::prelude::*;
@@ -9,7 +9,7 @@ use colorz_core::palette::Palette;
 use gtk::{gio, glib};
 
 use super::palette_view::PaletteView;
-use super::pick_page::swatch_area;
+use super::pick_page::draw_swatch;
 use super::window::ColorzWindow;
 use super::{NEW_PALETTE_NAME, prompt_name};
 use crate::state::{AppState, StateEvent};
@@ -18,6 +18,33 @@ use crate::state::{AppState, StateEvent};
 const STRIP_CELLS: usize = 16;
 const CELL_SIZE: (i32, i32) = (22, 16);
 const CELL_RADIUS: f64 = 3.0;
+const CELL_SPACING: i32 = 2;
+
+/// How many whole strip cells fit in `width` pixels.
+fn cells_that_fit(width: i32) -> usize {
+    let step = CELL_SIZE.0 + CELL_SPACING;
+    usize::try_from((width + CELL_SPACING) / step).unwrap_or(0)
+}
+
+/// A card's color strip. It fills the card's width and shows as many
+/// cells as fit, so a long palette never makes the window wider.
+fn strip(colors: Vec<[u8; 3]>) -> gtk::DrawingArea {
+    let area = gtk::DrawingArea::builder()
+        .content_height(CELL_SIZE.1)
+        .hexpand(true)
+        .build();
+    area.set_draw_func(move |_, cr, w, _| {
+        let (cw, ch) = CELL_SIZE;
+        for (i, rgb) in colors.iter().take(cells_that_fit(w)).enumerate() {
+            cr.save().ok();
+            let x = i as i32 * (cw + CELL_SPACING);
+            cr.translate(f64::from(x), 0.0);
+            draw_swatch(cr, cw, ch, CELL_RADIUS, *rgb);
+            cr.restore().ok();
+        }
+    });
+    area
+}
 
 /// The palettes whose name contains `q`, ignoring case and surrounding
 /// spaces; all of them when `q` is blank.
@@ -265,16 +292,8 @@ fn card(p: &Palette) -> gtk::ListBoxRow {
         .build();
     content.append(&top);
     if !p.colors.is_empty() {
-        let strip = gtk::Box::builder().spacing(2).build();
-        for c in p.colors.iter().take(STRIP_CELLS) {
-            let cell = swatch_area(
-                Some(CELL_SIZE),
-                CELL_RADIUS,
-                Rc::new(Cell::new(c.color.to_srgb8())),
-            );
-            strip.append(&cell);
-        }
-        content.append(&strip);
+        let colors = p.colors.iter().take(STRIP_CELLS);
+        content.append(&strip(colors.map(|c| c.color.to_srgb8()).collect()));
     }
     gtk::ListBoxRow::builder()
         .child(&content)
@@ -285,6 +304,17 @@ fn card(p: &Palette) -> gtk::ListBoxRow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn strip_shows_whole_cells_only() {
+        assert_eq!(cells_that_fit(0), 0);
+        assert_eq!(cells_that_fit(21), 0);
+        assert_eq!(cells_that_fit(22), 1);
+        assert_eq!(cells_that_fit(45), 1);
+        assert_eq!(cells_that_fit(46), 2);
+        // 16 cells and their 15 gaps.
+        assert_eq!(cells_that_fit(16 * 22 + 15 * 2), 16);
+    }
 
     #[test]
     fn filter_palettes() {

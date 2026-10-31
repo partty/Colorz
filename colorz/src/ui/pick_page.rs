@@ -36,7 +36,7 @@ pub fn hex_of(color: &Color) -> String {
 }
 
 /// Paints `rgb` as a rounded rectangle filling the area.
-fn draw_swatch(cr: &gtk::cairo::Context, w: i32, h: i32, radius: f64, rgb: [u8; 3]) {
+pub(super) fn draw_swatch(cr: &gtk::cairo::Context, w: i32, h: i32, radius: f64, rgb: [u8; 3]) {
     use std::f64::consts::{FRAC_PI_2, PI};
     let (w, h) = (f64::from(w), f64::from(h));
     let r = radius.min(w / 2.0).min(h / 2.0);
