@@ -8,6 +8,8 @@ use adw::prelude::*;
 use gtk::gio;
 use gtk::glib::prelude::ToValue;
 
+use crate::platform::CAN_PICK;
+
 /// Window width from which the view switcher shows labels, not just icons.
 const LABELS_MIN_WIDTH_SP: f64 = 520.0;
 const DEFAULT_WIDTH: i32 = 420;
@@ -67,6 +69,7 @@ impl ColorzWindow {
             .tooltip_text("Pick a Color From the Screen")
             .action_name("app.pick")
             .css_classes(["suggested-action"])
+            .visible(CAN_PICK)
             .build();
         let paste = gtk::Button::builder()
             .icon_name("edit-paste-symbolic")

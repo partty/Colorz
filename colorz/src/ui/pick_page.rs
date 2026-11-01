@@ -13,6 +13,7 @@ use super::palette_actions::add_colors;
 use super::palette_bar::PaletteBar;
 use super::targets::{target_choices, target_labels};
 use super::window::ColorzWindow;
+use crate::platform::CAN_PICK;
 use crate::state::{AppState, ColorSource, StateEvent};
 
 /// The recent-picks strip never shows more than this many swatches.
@@ -129,6 +130,7 @@ impl PickPage {
             .orientation(gtk::Orientation::Vertical)
             .spacing(6)
             .build();
+        recent_box.set_visible(false);
         recent_box.append(&recent_title);
         recent_box.append(&recent);
 
@@ -243,7 +245,7 @@ impl Inner {
 
     fn refresh_all(&self) {
         let cfg = self.state.config();
-        self.banner.set_revealed(cfg.chrome_correction);
+        self.banner.set_revealed(CAN_PICK && cfg.chrome_correction);
         self.refresh_target(&cfg);
         self.refresh_color();
         if self.recent_size.get() != cfg.history_size {
@@ -308,6 +310,9 @@ impl Inner {
     }
 
     fn refresh_recent(&self) {
+        if !CAN_PICK {
+            return;
+        }
         let cfg = self.state.config();
         let entries = self.state.history().entries;
         self.recent_size.set(cfg.history_size);

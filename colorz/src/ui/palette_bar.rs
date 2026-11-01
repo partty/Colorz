@@ -13,6 +13,7 @@ use super::NEW_PALETTE_NAME;
 use super::palette_actions::{auto_add_label, edit_on_wheel, menu_label, palettes_last_used_first};
 use super::pick_page::swatch_area;
 use super::window::ColorzWindow;
+use crate::platform::CAN_PICK;
 use crate::state::{AppState, StateEvent};
 
 const CHIP_SIZE: i32 = 30;
@@ -282,7 +283,7 @@ impl Inner {
 
     fn refresh(&self) {
         let cfg = self.state.config();
-        self.badge.set_visible(cfg.auto_add_picks);
+        self.badge.set_visible(CAN_PICK && cfg.auto_add_picks);
         let editing = self.state.editing().is_some();
         self.add_button
             .set_label(if editing { "Add as new" } else { "Add" });
@@ -324,7 +325,9 @@ impl Inner {
         let new = gio::Menu::new();
         new.append(Some("New palette\u{2026}"), Some("pbar.new"));
         let auto = gio::Menu::new();
-        auto.append(Some(auto_add_label(auto_add)), Some("pbar.auto"));
+        if CAN_PICK {
+            auto.append(Some(auto_add_label(auto_add)), Some("pbar.auto"));
+        }
         self.menu.remove_all();
         self.menu.append_section(None, &list);
         self.menu.append_section(None, &new);

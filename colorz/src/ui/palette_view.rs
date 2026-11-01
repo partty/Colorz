@@ -18,6 +18,7 @@ use super::palette_actions::edit_on_wheel;
 use super::pick_page::swatch_area;
 use super::window::ColorzWindow;
 use super::{copy_text, copy_with_toast, css_dialogs, prompt_name};
+use crate::platform::CAN_PICK;
 use crate::state::{AppState, ColorSource, PickPurpose, StateEvent};
 
 const SWATCH_SIZE: i32 = 28;
@@ -200,6 +201,7 @@ impl PaletteView {
             .menu_model(&header_menu())
             .build();
         let pick_into = icon_button("color-select-symbolic", "Pick into");
+        pick_into.set_visible(CAN_PICK);
         let open_wheel = icon_button("applications-graphics-symbolic", "Open on wheel");
         let header = adw::HeaderBar::builder()
             .show_start_title_buttons(false)
@@ -503,6 +505,7 @@ impl Inner {
         }
         let edit = icon_button("applications-graphics-symbolic", "Edit on wheel");
         let replace = icon_button("color-select-symbolic", "Pick replacement");
+        replace.set_visible(CAN_PICK);
         content.append(&edit);
         content.append(&replace);
         for w in copy.widgets() {

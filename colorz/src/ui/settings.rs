@@ -12,7 +12,7 @@ use gtk::{gio, glib};
 
 use super::targets::{target_choices, target_labels};
 use super::window::ColorzWindow;
-use crate::platform::{autostart, shortcuts};
+use crate::platform::{CAN_PICK, autostart, shortcuts};
 use crate::state::{AppState, StateEvent};
 
 /// The key binding offered when the portal shortcut is not available.
@@ -216,7 +216,7 @@ impl Ui {
             ShortcutStatus::Unavailable => ("Not available".to_owned(), true),
         };
         self.shortcut_row.set_subtitle(&subtitle);
-        self.fallback_button.set_visible(button);
+        self.fallback_button.set_visible(CAN_PICK && button);
     }
 
     fn remove_icc(&self, path: &PathBuf) {
@@ -343,6 +343,7 @@ pub fn show_settings(window: &ColorzWindow, state: &AppState, shortcut: &Rc<Shor
     let chrome = adw::SwitchRow::builder()
         .title("Correct picks from Chrome")
         .subtitle("Only for colors picked from Chrome. Turn off for other apps.")
+        .visible(CAN_PICK)
         .build();
     let space_group = adw::PreferencesGroup::builder()
         .title("Color space")
@@ -373,6 +374,7 @@ pub fn show_settings(window: &ColorzWindow, state: &AppState, shortcut: &Rc<Shor
     let autostart_row = adw::SwitchRow::builder().title("Start at login").build();
     let history = adw::SpinRow::with_range(5.0, 100.0, 1.0);
     history.set_title("Recent picks kept");
+    history.set_visible(CAN_PICK);
     let fallback_button = gtk::Button::builder()
         .label("Use GNOME keyboard shortcut instead")
         .valign(gtk::Align::Center)
@@ -380,6 +382,7 @@ pub fn show_settings(window: &ColorzWindow, state: &AppState, shortcut: &Rc<Shor
     let shortcut_row = adw::ActionRow::builder()
         .title("Global shortcut")
         .use_markup(false)
+        .visible(CAN_PICK)
         .build();
     shortcut_row.add_suffix(&fallback_button);
     let general_group = adw::PreferencesGroup::new();
@@ -525,18 +528,38 @@ pub fn show_settings(window: &ColorzWindow, state: &AppState, shortcut: &Rc<Shor
     dialog.present(Some(window.window()));
 }
 
+const PICK_ACCEL: &str = "<Super><Shift>c";
+
+/// The General section of the Keyboard Shortcuts dialog as (title,
+/// accelerator), in display order. The pick entry is left out where picking
+/// is unavailable.
+pub(crate) fn shortcut_items(can_pick: bool) -> Vec<(&'static str, &'static str)> {
+    let mut items = Vec::with_capacity(4);
+    if can_pick {
+        items.push(("Pick a color from the screen", PICK_ACCEL));
+    }
+    items.extend([
+        ("Paste a color", "<Control>v"),
+        ("Settings", "<Control>comma"),
+        ("Quit", "<Control>q"),
+    ]);
+    items
+}
+
 pub fn show_shortcuts(window: &ColorzWindow, pick_trigger: Option<&str>) {
     let dialog = adw::ShortcutsDialog::new();
 
     let general = adw::ShortcutsSection::new(Some("General"));
-    let pick = adw::ShortcutsItem::new("Pick a color from the screen", "<Super><Shift>c");
-    if let Some(trigger) = pick_trigger.filter(|t| !t.is_empty() && *t != DEFAULT_PICK_SHORTCUT) {
-        pick.set_subtitle(&format!("Currently {trigger}"));
+    for (title, accel) in shortcut_items(CAN_PICK) {
+        let item = adw::ShortcutsItem::new(title, accel);
+        if accel == PICK_ACCEL
+            && let Some(trigger) =
+                pick_trigger.filter(|t| !t.is_empty() && *t != DEFAULT_PICK_SHORTCUT)
+        {
+            item.set_subtitle(&format!("Currently {trigger}"));
+        }
+        general.add(item);
     }
-    general.add(pick);
-    general.add(adw::ShortcutsItem::new("Paste a color", "<Control>v"));
-    general.add(adw::ShortcutsItem::new("Settings", "<Control>comma"));
-    general.add(adw::ShortcutsItem::new("Quit", "<Control>q"));
     dialog.add(general);
 
     let wheel = adw::ShortcutsSection::new(Some("Color wheel"));
@@ -572,4 +595,30 @@ pub fn show_about(window: &ColorzWindow) {
     dialog.set_issue_url(concat!(env!("CARGO_PKG_REPOSITORY"), "/issues"));
     dialog.set_comments("Color picker and palette tool for GNOME");
     dialog.present(Some(window.window()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shortcut_items_follow_pick_support() {
+        assert_eq!(
+            shortcut_items(true),
+            [
+                ("Pick a color from the screen", "<Super><Shift>c"),
+                ("Paste a color", "<Control>v"),
+                ("Settings", "<Control>comma"),
+                ("Quit", "<Control>q"),
+            ]
+        );
+        assert_eq!(
+            shortcut_items(false),
+            [
+                ("Paste a color", "<Control>v"),
+                ("Settings", "<Control>comma"),
+                ("Quit", "<Control>q"),
+            ]
+        );
+    }
 }

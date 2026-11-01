@@ -31,7 +31,6 @@ use futures_util::future::{LocalBoxFuture, Shared};
 use crate::APP_ID;
 
 /// Whether colors can be picked from the screen. Not yet on Windows.
-#[expect(dead_code, reason = "the UI does not read it yet")]
 pub const CAN_PICK: bool = cfg!(not(windows));
 
 /// Prints `msg` to stderr when the environment has `COLORZ_DEBUG=1`.

@@ -15,7 +15,7 @@ use gtk::{gio, glib};
 
 use crate::APP_ID;
 use crate::platform::tray::{self, TrayCommand, TrayEvent, TrayHandle, TrayModel};
-use crate::platform::{autostart, clipboard, notify, pick, shortcuts};
+use crate::platform::{CAN_PICK, autostart, clipboard, notify, pick, shortcuts};
 use crate::state::{AppState, ColorSource, PickPurpose, PickRoute, StateEvent, pick_route};
 use crate::ui::palette_actions;
 use crate::ui::palettes_page::PalettesPage;
@@ -367,14 +367,16 @@ pub fn run() -> glib::ExitCode {
         .application_id(APP_ID)
         .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
         .build();
-    app.add_main_option(
-        "pick",
-        glib::Char::from(0),
-        glib::OptionFlags::NONE,
-        glib::OptionArg::None,
-        "Pick a color from the screen",
-        None,
-    );
+    if CAN_PICK {
+        app.add_main_option(
+            "pick",
+            glib::Char::from(0),
+            glib::OptionFlags::NONE,
+            glib::OptionArg::None,
+            "Pick a color from the screen",
+            None,
+        );
+    }
     app.add_main_option(
         "background",
         glib::Char::from(0),
@@ -422,7 +424,9 @@ pub fn run() -> glib::ExitCode {
             report_save_failures(app, &colorz);
             handle_tray_events(app, &colorz, tray_events);
             follow_state(&colorz);
-            register_shortcut(app, &colorz);
+            if CAN_PICK {
+                register_shortcut(app, &colorz);
+            }
             ui::debug_snapshot(app, &colorz.window, &colorz.state);
             if ctx.set(colorz).is_err() {
                 unreachable!("startup runs once");
