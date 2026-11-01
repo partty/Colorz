@@ -5,8 +5,9 @@ Smoke-tests the Colorz installer on a Windows CI runner.
 .DESCRIPTION
 Installs Colorz for the current user, seeds palettes and settings, saves
 screenshots of every page and dialog, then checks launching, single
-instance, reinstalling over a running copy, background start and
-uninstalling. Exits non-zero with a message naming the failed check.
+instance, reinstalling over a running copy, background start (and a later
+launch showing its window) and uninstalling. Exits non-zero with a message
+naming the failed check.
 
 Each Colorz process runs with PATH limited to the Windows directories, so
 it must find every DLL next to the installed exe, and with its stdout and
@@ -79,8 +80,8 @@ function Get-Colorz {
     Get-Process colorz -ErrorAction SilentlyContinue
 }
 
-# Every process whose executable lies in the install dir (colorz.exe, and
-# gdbus.exe if GLib started its session bus from there).
+# Every process whose executable lies in the install dir. Only colorz.exe
+# should ever run from there.
 function Get-InstalledProcess {
     Get-Process | Where-Object {
             $path = $null
@@ -189,6 +190,8 @@ try {
     if (-not (Test-Path -LiteralPath $Exe)) { Fail "$Exe is missing" }
     if (-not (Test-Path -LiteralPath $Shortcut)) { Fail "$Shortcut is missing" }
     if (-not (Test-Path -LiteralPath $Notices)) { Fail "$Notices is missing" }
+    $bus = Join-Path $InstallDir 'bin\gdbus.exe'
+    if (Test-Path -LiteralPath $bus) { Fail "$bus is installed; Colorz must not start a session bus" }
     $run = Get-RunValue
     if ($null -ne $run) { Fail "the Run value already exists after installing: $run" }
 
@@ -246,8 +249,14 @@ try {
     Write-Host ('  colorz processes: {0} (pids {1})' -f $procs.Count, (($procs | ForEach-Object Id) -join ', '))
     if ($procs.Count -ne 1) { Fail "$($procs.Count) colorz processes are running, expected 1" }
     Assert-Running $first
+    $others = @(Get-InstalledProcess | Where-Object { $_.ProcessName -ne 'colorz' })
+    if ($others.Count -gt 0) {
+        Fail ('other processes run from the install dir: {0}' -f (($others | ForEach-Object Path) -join ', '))
+    }
     $second.Refresh()
-    if ($second.HasExited) { Write-Host "  The second launch exited with code $($second.ExitCode)" }
+    if (-not $second.HasExited) { Fail 'the second launch is still running' }
+    Write-Host "  The second launch exited with code $($second.ExitCode)"
+    if ($second.ExitCode -ne 0) { Fail "the second launch exited with code $($second.ExitCode)" }
     Assert-CleanStderr
 
     Start-Check '6 (reinstall)'
@@ -270,6 +279,16 @@ try {
     $handle = (Get-Process -Id $bg.Id).MainWindowHandle
     Write-Host "  MainWindowHandle: $handle"
     if ($handle -ne [IntPtr]::Zero) { Fail "the --background start shows a window (MainWindowHandle $handle)" }
+    # A plain launch now asks the running Colorz to show its window, and exits.
+    $show = Start-Colorz 'show'
+    if (-not (Wait-Until { (Get-Process -Id $bg.Id).MainWindowHandle -ne [IntPtr]::Zero } 10)) {
+        Fail 'a second launch did not bring up the window of the --background start'
+    }
+    Write-Host ('  MainWindowHandle after a second launch: {0}' -f (Get-Process -Id $bg.Id).MainWindowHandle)
+    if (-not $show.WaitForExit(5000)) { Fail 'the second launch is still running' }
+    if ($show.ExitCode -ne 0) { Fail "the second launch exited with code $($show.ExitCode)" }
+    $procs = @(Get-Colorz)
+    if ($procs.Count -ne 1) { Fail "$($procs.Count) colorz processes are running, expected 1" }
     Assert-CleanStderr
 
     Start-Check '8 (uninstall)'

@@ -33,11 +33,17 @@ use crate::APP_ID;
 /// Whether colors can be picked from the screen. Not yet on Windows.
 pub const CAN_PICK: bool = cfg!(not(windows));
 
-/// Process-wide setup that must happen before GTK starts: on Windows, the
-/// AppUserModelID. Nothing to do elsewhere.
+/// Process-wide setup that must happen before GTK starts. On Windows: hand
+/// the launch to a Colorz that already runs (and exit), set the
+/// AppUserModelID and keep GLib off the session bus. Nothing to do
+/// elsewhere.
 pub fn init() {
     #[cfg(windows)]
-    windows::identity::set_app_user_model_id();
+    {
+        windows::instance::claim_or_forward();
+        windows::identity::set_app_user_model_id();
+        windows::disable_session_bus();
+    }
 }
 
 /// Prints `msg` to stderr when the environment has `COLORZ_DEBUG=1`.

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Stages a self-contained Colorz tree for the Windows installer: the exe,
-# the GTK runtime DLLs it loads, gdbus.exe, the gdk-pixbuf loaders, the
-# GTK settings schemas, the Adwaita icon theme and the licenses of every
-# bundled MSYS2 package. windows/colorz.iss packs the result.
+# the GTK runtime DLLs it loads, the gdk-pixbuf loaders, the GTK settings
+# schemas, the Adwaita icon theme and the licenses of every bundled MSYS2
+# package. windows/colorz.iss packs the result. There is no gdbus.exe:
+# Colorz keeps off the D-Bus session bus on Windows.
 #
 # Usage: windows/bundle.sh <colorz.exe> <stage-dir>
 # Runs in the MSYS2 UCRT64 shell. <stage-dir> must not exist or be empty.
@@ -46,9 +47,8 @@ copy() {
     printf '%s\n' "$1" >>"$owned"
 }
 
-echo "==> Copying colorz.exe and gdbus.exe"
+echo "==> Copying colorz.exe"
 cp "$exe" "$stage/bin/colorz.exe"
-copy "$prefix/bin/gdbus.exe" "$stage/bin"
 
 echo "==> Copying gdk-pixbuf loaders"
 loaders=("$prefix/$loaders_rel"/*.dll)
@@ -71,7 +71,7 @@ prefix_deps() {
 
 echo "==> Collecting DLLs"
 declare -A have=()
-scan=("$exe" "$prefix/bin/gdbus.exe" "${loaders[@]}")
+scan=("$exe" "${loaders[@]}")
 round=0
 while [ ${#scan[@]} -gt 0 ]; do
     round=$((round + 1))

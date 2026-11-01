@@ -23,7 +23,14 @@ ksni.workspace = true
 tauri-winrt-notification = "0.8.1"
 tray-icon = { version = "0.26.1", default-features = false }
 windows-registry = "0.100.0"
-windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }
+windows-sys = { version = "0.61", features = [
+    "Win32_Graphics_Gdi",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [build-dependencies]
 glib-build-tools = "0.22"

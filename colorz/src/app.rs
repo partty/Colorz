@@ -364,9 +364,15 @@ fn tray_snapshot(state: &AppState, shortcut_label: &str) -> (TrayModel, Vec<Colo
 
 pub fn run() -> glib::ExitCode {
     platform::init();
+    let mut flags = gio::ApplicationFlags::HANDLES_COMMAND_LINE;
+    // Windows has no session bus for uniqueness; `platform::init()` keeps
+    // one Colorz there instead.
+    if cfg!(windows) {
+        flags |= gio::ApplicationFlags::NON_UNIQUE;
+    }
     let app = adw::Application::builder()
         .application_id(APP_ID)
-        .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
+        .flags(flags)
         .build();
     if CAN_PICK {
         app.add_main_option(
@@ -420,6 +426,15 @@ pub fn run() -> glib::ExitCode {
                 _hold: app.hold(),
             });
             install_actions(app, &colorz);
+            #[cfg(windows)]
+            platform::windows::instance::set_on_show({
+                let app = app.downgrade();
+                move || {
+                    if let Some(app) = app.upgrade() {
+                        app.activate_action("show", None);
+                    }
+                }
+            });
             ui::image_dialog::install_drop_target(&colorz.window, &colorz.state);
             install_paste_shortcut(app, &colorz);
             report_save_failures(app, &colorz);

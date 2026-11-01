@@ -49,36 +49,19 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Filename: "{app}\bin\colorz.exe"; Description: "Launch Colorz"; Flags: nowait postinstall skipifsilent
 
 [Code]
-// Ends any running colorz.exe, and the GLib session bus that Colorz started
-// from AppDir\bin\gdbus.exe, so their files can be replaced or removed.
-procedure EndColorz(AppDir: String);
+// Ends any running colorz.exe so its files can be replaced or removed.
+procedure EndColorz;
 var
   ResultCode: Integer;
-  Dir: String;
 begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM colorz.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  // The bus outlives Colorz and keeps the DLLs in bin locked. Only a gdbus.exe
-  // under AppDir is ended: other GLib apps may run their own. Dir goes into a
-  // single-quoted PowerShell string, so its quotes are doubled (O'Brien).
-  if AppDir <> '' then
-  begin
-    Dir := AddBackslash(AppDir);
-    StringChangeEx(Dir, '''', '''''', True);
-    Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
-      '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
-      'Get-Process gdbus -ErrorAction SilentlyContinue | ' +
-      'Where-Object { $_.Path -and $_.Path.StartsWith(''' + Dir + ''', [StringComparison]::OrdinalIgnoreCase) } | ' +
-      'Stop-Process -Force"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  end;
   // Gives Windows time to release the ended processes' file handles.
   Sleep(500);
 end;
 
-// WizardDirValue is the chosen install dir; for an upgrade, the existing one.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
-  EndColorz(WizardDirValue);
+  EndColorz;
   Result := '';
 end;
 
@@ -86,5 +69,5 @@ end;
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
-    EndColorz(ExpandConstant('{app}'));
+    EndColorz;
 end;
