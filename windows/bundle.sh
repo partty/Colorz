@@ -102,6 +102,8 @@ echo "==> Writing loaders.cache"
 cache=$stage/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
 gdk-pixbuf-query-loaders "$stage/$loaders_rel"/*.dll >"$cache.tmp" ||
     die "gdk-pixbuf-query-loaders failed"
+# A native Windows program, so its output may end lines with CRLF.
+sed -i 's/\r$//' "$cache.tmp"
 sed -E -e '/^# LoaderDir = /d' -e 's#^"([^"]*[/\\])?([^"/\\]+\.dll)"$#"lib\\\\gdk-pixbuf-2.0\\\\2.10.0\\\\loaders\\\\\2"#' \
     "$cache.tmp" >"$cache"
 rm "$cache.tmp"
@@ -127,7 +129,10 @@ glib-compile-schemas "$stage/$schemas_rel" || die "glib-compile-schemas failed"
 echo "==> Copying icon themes"
 [ -d "$prefix/share/icons/Adwaita" ] || die "$prefix/share/icons/Adwaita does not exist"
 cp -R "$prefix/share/icons/Adwaita" "$stage/share/icons/"
-find "$prefix/share/icons/Adwaita" -type f >>"$owned"
+# One owned file stands for the theme: the theme ships generated, unowned
+# files (icon-theme.cache), and a lookup per icon would be slow.
+[ -f "$prefix/share/icons/Adwaita/index.theme" ] || die "Adwaita has no index.theme"
+printf '%s\n' "$prefix/share/icons/Adwaita/index.theme" >>"$owned"
 copy "$prefix/share/icons/hicolor/index.theme" "$stage/share/icons/hicolor"
 for theme in Adwaita hicolor; do
     gtk4-update-icon-cache -q -t -f "$stage/share/icons/$theme" ||

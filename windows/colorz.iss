@@ -55,6 +55,8 @@ var
   ResultCode: Integer;
 begin
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM colorz.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Gives Windows time to release the ended process's file handles.
+  Sleep(500);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -63,8 +65,9 @@ begin
   Result := '';
 end;
 
-function InitializeUninstall(): Boolean;
+// After the user confirms the uninstall, before any file is removed.
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
-  EndColorz();
-  Result := True;
+  if CurUninstallStep = usUninstall then
+    EndColorz();
 end;
