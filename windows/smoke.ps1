@@ -221,6 +221,9 @@ try {
     }
     if ($snap.ExitCode -ne 0) { Fail "the snapshot run exited with code $($snap.ExitCode)" }
     if ($missing.Count -gt 0) { Fail ('missing or empty screenshots: {0}' -f ($missing -join ', ')) }
+    foreach ($f in Get-ChildItem -LiteralPath $LogDir -Filter '*.stderr.log') {
+        Write-Host ('  {0}: {1} lines' -f $f.Name, @(Read-Log $f.FullName).Count)
+    }
     Assert-CleanStderr
 
     Start-Check '4 (launch)'
