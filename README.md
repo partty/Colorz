@@ -22,6 +22,17 @@ sudo apt install ./colorz_amd64.deb
 For the tray icon, keep the "Ubuntu AppIndicators" extension enabled (it is on
 by default on Ubuntu).
 
+[**Windows (beta): download the installer**](https://github.com/partty/Colorz/releases/latest/download/colorz-setup-x64.exe)
+(Windows 10 or 11, x64, about 24 MB). It installs for the current user only,
+so it needs no admin rights, and adds a Start menu entry. Uninstall it from
+Windows Settings → Apps.
+
+- The installer is unsigned, so Windows may show "Windows protected your PC":
+  choose **More info → Run anyway**.
+- The beta has no screen picker or global shortcut yet; picking comes in a
+  later release.
+- Report problems on [GitHub issues](https://github.com/partty/Colorz/issues).
+
 ## Features
 
 - Screen picking through the XDG Screenshot portal (Wayland-friendly), from a
@@ -56,6 +67,9 @@ by default on Ubuntu).
   These bring `glib-compile-resources`, which bundles the app icon into the
   binary so it also shows when running from `target/`.
 
+- Windows (beta): Windows 10 or 11, x64. The installer bundles everything it
+  needs.
+
 - Rust via [rustup](https://rustup.rs). The Makefile expects cargo at
   `~/.cargo/bin/cargo` (override with `make CARGO=...`).
 
@@ -88,6 +102,14 @@ GitHub Actions runs format, lint and tests on every push and pull request,
 and builds the `.deb` on Ubuntu 26.04 (download it from the run's
 artifacts). Pushing a tag `v<version>` matching the `Cargo.toml` version
 also attaches the `.deb` to a GitHub release.
+
+### Windows
+
+The Windows beta is built and packaged by the `windows` job in
+`.github/workflows/ci.yml`; the scripts it uses are in `windows/`. The job runs
+the tests, builds the installer with Inno Setup, installs it silently and
+smoke-tests the result, then uploads `colorz-<version>-setup-x64.exe` as an
+artifact. A `v<version>` tag attaches it to the release.
 
 ### Snap
 
@@ -238,6 +260,9 @@ shows the active palette: its name, one chip per color, and an Add button.
 | `~/.local/share/colorz/palettes/<id>.json`    | one file per palette|
 | `~/.local/share/colorz/history.json`          | pick history        |
 
+On Windows (beta) the data lives in `%APPDATA%\colorz` and is kept when you
+uninstall.
+
 Writes are atomic. A corrupt `config.toml` is moved to `config.toml.bak`;
 corrupt palette files are skipped and left untouched.
 
@@ -252,6 +277,8 @@ colorz/src        GTK4/libadwaita app
   ui/             window, pick page, wheel page, palettes page, settings, dialogs
 data/             desktop file, icon, AppStream metainfo, icon resource list
 docs/screenshots  README screenshots
+windows/          Windows beta: installer script (Inno Setup), icon and resource
+                  file, bundle and icon scripts, smoke test and its fixtures
 .github/          CI: tests, .deb and snap builds, releases on tags
 snap/             snapcraft.yaml; local/ holds the store listing and its upload script
 Makefile
@@ -271,6 +298,15 @@ session:
 - Drag and drop
 - Crispness under fractional scaling
 - Picks from Firefox (untested)
+
+Windows (beta) is only tested in CI (Windows Server 2025), not yet on a real
+desktop:
+
+- Tray icon clicks and menu
+- How notifications look
+- Dark mode following Windows
+- Windows 10
+- High-DPI and multi-monitor setups
 
 ## Troubleshooting
 

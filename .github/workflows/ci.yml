@@ -180,7 +180,7 @@ jobs:
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -205,11 +205,20 @@ jobs:
       - name: Add a version-free copy
         run: cp dist/colorz_*_amd64.deb dist/colorz_amd64.deb
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: colorz-windows
+          path: dist
+
+      # Same idea: releases/latest/download/colorz-setup-x64.exe
+      - name: Add a version-free copy of the installer
+        run: cp dist/colorz-*-setup-x64.exe dist/colorz-setup-x64.exe
+
       # GitHub's own CLI, so no third-party code runs with write access.
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.deb --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.exe --generate-notes --verify-tag
 
   snap-publish:
     name: Publish snap
