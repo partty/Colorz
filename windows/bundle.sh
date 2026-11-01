@@ -144,7 +144,36 @@ pkglist=$(sort -u "$owned" | xargs -d '\n' pacman -Qqo | sort -u) ||
     die "pacman cannot tell which package owns every bundled file"
 mapfile -t packages <<<"$pkglist"
 [ -n "${packages[0]}" ] || die "pacman found no owning packages"
+
+# Packages that install no license file of their own, mapped to an
+# installed copy of their license's text and the pacman License value it
+# fits. Every other package must ship at least one license file. All of
+# them are LGPL-2.1 today, which the text check below relies on.
+lgpl21=$prefix/share/licenses/libadwaita/COPYING
+declare -A fallback_text=(
+    [gstreamer]=$lgpl21
+    [gst-plugins-base]=$lgpl21
+    [gst-plugins-bad-libs]=$lgpl21
+)
+declare -A fallback_license=(
+    [gstreamer]=LGPL-2.1-or-later
+    [gst-plugins-base]=LGPL-2.1-or-later
+    [gst-plugins-bad-libs]=LGPL-2.1-or-later
+)
+
+# The License field of an installed package, e.g.
+# "spdx:LGPL-2.1-or-later" (MSYS2 marks SPDX identifiers with "spdx:").
+pkg_license() {
+    local out
+    out=$(LC_ALL=C pacman -Qi "$1") || die "pacman -Qi $1 failed"
+    sed -n 's/^Licenses *: *//p' <<<"$out"
+}
+
+sources=()
 for pkg in "${packages[@]}"; do
+    license=$(pkg_license "$pkg")
+    [ -n "$license" ] || die "$pkg has no License field"
+    sources+=("$(LC_ALL=C pacman -Q "$pkg")  License: $license")
     files=$(pacman -Qlq "$pkg") || die "pacman -Ql $pkg failed"
     count=0
     while IFS= read -r f; do
@@ -154,14 +183,34 @@ for pkg in "${packages[@]}"; do
         cp "$f" "$stage/share/licenses/$rel"
         count=$((count + 1))
     done <<<"$files"
-    echo "    $pkg: $count license files"
+    if [ "$count" -gt 0 ]; then
+        echo "    $pkg: $count license files ($license)"
+        continue
+    fi
+    short=${pkg#mingw-w64-ucrt-x86_64-}
+    text=${fallback_text[$short]:-}
+    [ -n "$text" ] || die "$pkg ($license) installs no license file; add it to fallback_text"
+    [ "${license#spdx:}" = "${fallback_license[$short]}" ] ||
+        die "$pkg is now licensed '$license', not '${fallback_license[$short]}'; check its fallback_text"
+    [ -f "$text" ] || die "$text (license text for $pkg) does not exist"
+    grep -q 'GNU LESSER GENERAL PUBLIC LICENSE' "$text" && grep -q 'Version 2\.1' "$text" ||
+        die "$text is not the LGPL-2.1 text"
+    text_pkg=$(pacman -Qqo "$text") || die "pacman cannot tell which package owns $text"
+    mkdir -p "$stage/share/licenses/$short"
+    cp "$text" "$stage/share/licenses/$short/COPYING"
+    {
+        echo "$pkg installs no license file. Its License field is $license."
+        echo "COPYING here is the text of that license, copied from"
+        echo "${text#"$prefix/"} in $text_pkg."
+    } >"$stage/share/licenses/$short/NOTE.txt"
+    echo "    $pkg: no license files; COPYING from $text_pkg ($license)"
 done
 {
     echo "Colorz for Windows bundles these MSYS2 packages. Their source code is at"
     echo "https://repo.msys2.org/mingw/sources/ and their build recipes at"
     echo "https://github.com/msys2/MINGW-packages."
     echo
-    pacman -Q "${packages[@]}"
+    printf '%s\n' "${sources[@]}"
 } >"$stage/share/licenses/SOURCES.txt"
 cp "$repo/LICENSE" "$repo/README.md" "$stage/share/licenses/colorz/"
 
