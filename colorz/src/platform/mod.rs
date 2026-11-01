@@ -33,6 +33,13 @@ use crate::APP_ID;
 /// Whether colors can be picked from the screen. Not yet on Windows.
 pub const CAN_PICK: bool = cfg!(not(windows));
 
+/// Process-wide setup that must happen before GTK starts: on Windows, the
+/// AppUserModelID. Nothing to do elsewhere.
+pub fn init() {
+    #[cfg(windows)]
+    windows::identity::set_app_user_model_id();
+}
+
 /// Prints `msg` to stderr when the environment has `COLORZ_DEBUG=1`.
 pub fn debug(msg: &str) {
     static ENABLED: OnceLock<bool> = OnceLock::new();

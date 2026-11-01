@@ -20,7 +20,9 @@ ashpd.workspace = true
 ksni.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+tray-icon = { version = "0.26.1", default-features = false }
 windows-registry = "0.100.0"
+windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }
 
 [build-dependencies]
 glib-build-tools = "0.22"

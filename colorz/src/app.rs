@@ -15,7 +15,7 @@ use gtk::{gio, glib};
 
 use crate::APP_ID;
 use crate::platform::tray::{self, TrayCommand, TrayEvent, TrayHandle, TrayModel};
-use crate::platform::{CAN_PICK, autostart, clipboard, notify, pick, shortcuts};
+use crate::platform::{self, CAN_PICK, autostart, clipboard, notify, pick, shortcuts};
 use crate::state::{AppState, ColorSource, PickPurpose, PickRoute, StateEvent, pick_route};
 use crate::ui::palette_actions;
 use crate::ui::palettes_page::PalettesPage;
@@ -363,6 +363,7 @@ fn tray_snapshot(state: &AppState, shortcut_label: &str) -> (TrayModel, Vec<Colo
 }
 
 pub fn run() -> glib::ExitCode {
+    platform::init();
     let app = adw::Application::builder()
         .application_id(APP_ID)
         .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)

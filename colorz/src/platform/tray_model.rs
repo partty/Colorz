@@ -2,15 +2,19 @@
 //! every platform.
 
 /// Edge length of the fallback tray icon.
-#[cfg_attr(windows, expect(dead_code, reason = "no Windows tray yet"))]
 pub const ICON_SIZE: u32 = 32;
 /// OKHSL lightness of the fallback icon's color wheel.
-#[cfg_attr(windows, expect(dead_code, reason = "no Windows tray yet"))]
 pub const ICON_LIGHTNESS: f64 = 0.65;
 
 /// What the user chose in the tray, handled on the GTK main loop.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(windows, expect(dead_code, reason = "no Windows tray yet"))]
+#[cfg_attr(
+    windows,
+    expect(
+        dead_code,
+        reason = "the Windows tray never sends Pick, ToggleChrome or CopyRecent"
+    )
+)]
 pub enum TrayCommand {
     Open,
     Pick,
