@@ -1,0 +1,24 @@
+Third-party licenses of Colorz for Windows
+==========================================
+
+colorz.exe includes code from the Rust crates below. Their licenses
+follow, each with the crates it applies to. The GTK runtime libraries
+installed with Colorz have their own license files in share\licenses.
+
+Licenses:
+{{#each overview}}
+  {{{name}}} ({{count}})
+{{/each}}
+
+{{#each licenses}}
+------------------------------------------------------------------------
+{{{name}}}
+
+Used by:
+{{#each used_by}}
+  {{{crate.name}}} {{{crate.version}}}{{#if crate.repository}} ({{{crate.repository}}}){{/if}}
+{{/each}}
+
+{{{text}}}
+
+{{/each}}

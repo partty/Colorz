@@ -1,0 +1,29 @@
+# cargo-about configuration for the third-party notices of the Rust crates
+# that colorz.exe links on Windows. CI runs, from the repo root:
+#   cargo about generate -c windows/about.toml -m colorz/Cargo.toml \
+#     --locked --fail -o <file> windows/about.hbs
+# A crate under a license missing here fails the run: check the license
+# allows redistributing the binary, then add it.
+
+# In order of preference, for crates that offer a choice.
+accepted = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "MPL-2.0",
+    "CC0-1.0",
+]
+targets = ["x86_64-pc-windows-gnu"]
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
+
+# Colorz itself; its LICENSE is installed next to these notices.
+[colorz]
+accepted = ["GPL-3.0-or-later"]
+
+[colorz-core]
+accepted = ["GPL-3.0-or-later"]

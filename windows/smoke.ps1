@@ -29,6 +29,7 @@ $InstallDir = Join-Path $env:LOCALAPPDATA 'Programs\Colorz'
 $Exe = Join-Path $InstallDir 'bin\colorz.exe'
 $Uninstaller = Join-Path $InstallDir 'unins000.exe'
 $Shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Colorz.lnk'
+$Notices = Join-Path $InstallDir 'share\licenses\colorz\THIRD-PARTY-RUST.txt'
 $DataDir = Join-Path $env:APPDATA 'colorz'
 $PalettesDir = Join-Path $DataDir 'palettes'
 $RunKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
@@ -187,6 +188,7 @@ try {
     if ($code -ne 0) { Fail "the installer exited with code $code" }
     if (-not (Test-Path -LiteralPath $Exe)) { Fail "$Exe is missing" }
     if (-not (Test-Path -LiteralPath $Shortcut)) { Fail "$Shortcut is missing" }
+    if (-not (Test-Path -LiteralPath $Notices)) { Fail "$Notices is missing" }
     $run = Get-RunValue
     if ($null -ne $run) { Fail "the Run value already exists after installing: $run" }
 
