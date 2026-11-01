@@ -83,6 +83,7 @@ jobs:
   windows:
     name: Windows build
     runs-on: windows-2025
+    timeout-minutes: 60
     defaults:
       run:
         # MSYS2's UCRT64 shell: GTK 4 and libadwaita come from MSYS2 packages.

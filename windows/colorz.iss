@@ -22,6 +22,8 @@ PrivilegesRequired=lowest
 DefaultDirName={autopf}\Colorz
 DisableProgramGroupPage=yes
 OutputBaseFilename=colorz-{#AppVersion}-setup-x64
+; GTK 4 needs Windows 10 or later.
+MinVersion=10.0
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
@@ -33,6 +35,12 @@ UninstallDisplayName=Colorz
 CloseApplications=no
 Compression=lzma2
 SolidCompression=yes
+
+[InstallDelete]
+; An upgrade replaces the runtime as a whole, so no DLL or loader of the
+; previous version (e.g. one an MSYS2 update renamed) stays behind.
+Type: files; Name: "{app}\bin\*.dll"
+Type: filesandordirs; Name: "{app}\lib\gdk-pixbuf-2.0"
 
 [Files]
 Source: "{#StageDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

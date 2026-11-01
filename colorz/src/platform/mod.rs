@@ -84,3 +84,21 @@ async fn register_host_app() {
         Err(e) => debug(&format!("portal host registration failed: {e}")),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Checked when the tests compile, for the target they compile for.
+    #[test]
+    fn picking_is_available_except_on_windows() {
+        #[cfg(windows)]
+        const {
+            assert!(!CAN_PICK)
+        };
+        #[cfg(not(windows))]
+        const {
+            assert!(CAN_PICK)
+        };
+    }
+}
