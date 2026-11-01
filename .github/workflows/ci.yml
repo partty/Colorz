@@ -80,6 +80,42 @@ jobs:
           path: ${{ steps.snapcraft.outputs.snap }}
           if-no-files-found: error
 
+  windows:
+    name: Windows build
+    runs-on: windows-2025
+    defaults:
+      run:
+        # MSYS2's UCRT64 shell: GTK 4 and libadwaita come from MSYS2 packages.
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v7
+
+      # The toolchain is MSYS2's own Rust, so it links against the same
+      # GTK libraries it is installed next to.
+      - uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2.33.0
+        with:
+          msystem: UCRT64
+          update: true
+          cache: true
+          install: >-
+            mingw-w64-ucrt-x86_64-rust
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-gtk4
+            mingw-w64-ucrt-x86_64-libadwaita
+            mingw-w64-ucrt-x86_64-lcms2
+            mingw-w64-ucrt-x86_64-librsvg
+            mingw-w64-ucrt-x86_64-adwaita-icon-theme
+
+      # Runs in the default shell, so it caches the runner's ~/.cargo and target.
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --locked
+
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')
@@ -145,8 +181,9 @@ jobs:
 
   store-listing:
     name: Update Snap Store listing
-    # Release tags, or by hand from the Actions tab.
-    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    # Release tags, or by hand from the Actions tab on main. A dispatch on
+    # a branch (e.g. a Windows test run) must never touch the store.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: snap
     runs-on: ubuntu-latest
     env:
