@@ -9,29 +9,42 @@
 //! the selection afterwards.
 //!
 //! Run with `COLORZ_DEBUG=1` to see which path each copy took.
+//!
+//! On Windows any window may set the clipboard, so it is set directly.
 
+#[cfg(not(windows))]
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+#[cfg(not(windows))]
 use std::time::Duration;
 
 use adw::prelude::*;
+#[cfg(not(windows))]
 use gtk::glib;
 
 use super::debug;
+#[cfg(not(windows))]
+use super::focus::when_active;
 use crate::ui::window::ColorzWindow;
 
 /// How long the tiny window stays mapped after setting the clipboard.
+#[cfg(not(windows))]
 const TINY_LINGER: Duration = Duration::from_millis(300);
 /// How long the tiny window may take to get focus before falling back.
+#[cfg(not(windows))]
 const TINY_ACTIVATE_TIMEOUT: Duration = Duration::from_millis(500);
 /// How long a main window shown only for the copy stays up afterwards.
+#[cfg(not(windows))]
 const MAIN_LINGER: Duration = Duration::from_millis(600);
 /// How long the main window may take to get focus before giving up.
+#[cfg(not(windows))]
 const MAIN_ACTIVATE_TIMEOUT: Duration = Duration::from_millis(2000);
 /// Size and opacity of the tiny focus window.
+#[cfg(not(windows))]
 const TINY_SIZE: i32 = 1;
+#[cfg(not(windows))]
 const TINY_OPACITY: f64 = 0.01;
 
+#[cfg(not(windows))]
 thread_local! {
     /// Bumped on every copy, so a slow attempt never overwrites a newer one.
     static GENERATION: Cell<u64> = const { Cell::new(0) };
@@ -42,11 +55,13 @@ thread_local! {
 /// Sets (or clears) the XDG activation token for the next copy, e.g. the
 /// one the global shortcut came with. Wayland only lets a window take
 /// focus with such a token; it is handed to the window the copy presents.
+#[cfg(not(windows))]
 pub fn set_activation_token(token: Option<String>) {
     ACTIVATION_TOKEN.replace(token);
 }
 
 /// Presents `win`, using the pending activation token if there is one.
+#[cfg(not(windows))]
 fn present_with_token(win: &gtk::Window, present: impl FnOnce()) {
     if let Some(token) = ACTIVATION_TOKEN.take() {
         debug("clipboard: presenting with an activation token");
@@ -55,11 +70,25 @@ fn present_with_token(win: &gtk::Window, present: impl FnOnce()) {
     present();
 }
 
+#[cfg(not(windows))]
 fn is_current(generation: u64) -> bool {
     GENERATION.get() == generation
 }
 
+/// Activation tokens are a Wayland thing; Windows has nothing to pass on.
+#[cfg(windows)]
+pub fn set_activation_token(_token: Option<String>) {}
+
+/// Puts `text` on the clipboard. Windows takes it from any window, focused
+/// or not.
+#[cfg(windows)]
+pub fn copy_text(_app: &adw::Application, window: &ColorzWindow, text: &str) {
+    window.window().clipboard().set_text(text);
+    debug(&format!("clipboard: direct: {text}"));
+}
+
 /// Puts `text` on the clipboard, whether or not the main window is shown.
+#[cfg(not(windows))]
 pub fn copy_text(app: &adw::Application, window: &ColorzWindow, text: &str) {
     let generation = GENERATION.get() + 1;
     GENERATION.set(generation);
@@ -73,6 +102,7 @@ pub fn copy_text(app: &adw::Application, window: &ColorzWindow, text: &str) {
     copy_via_tiny_window(app, window, text.to_owned(), generation);
 }
 
+#[cfg(not(windows))]
 fn copy_via_tiny_window(
     app: &adw::Application,
     window: &ColorzWindow,
@@ -114,6 +144,7 @@ fn copy_via_tiny_window(
     present_with_token(&tiny, || tiny.present());
 }
 
+#[cfg(not(windows))]
 fn copy_via_main_window(window: &ColorzWindow, text: String, generation: u64) {
     let main: gtk::Window = window.window().clone().upcast();
     let was_visible = main.is_visible();
@@ -157,61 +188,4 @@ fn copy_via_main_window(window: &ColorzWindow, text: String, generation: u64) {
     } else {
         present_with_token(&main, || window.present_briefly());
     }
-}
-
-/// Runs `on_active` once `win` is the active window, or `on_timeout` if it
-/// is not within `timeout`. Exactly one of the two runs.
-pub fn when_active(
-    win: &gtk::Window,
-    timeout: Duration,
-    on_active: impl FnOnce() + 'static,
-    on_timeout: impl FnOnce() + 'static,
-) {
-    if win.is_active() {
-        on_active();
-        return;
-    }
-    type Pending = Option<(Box<dyn FnOnce()>, Box<dyn FnOnce()>)>;
-    let pending: Rc<RefCell<Pending>> = Rc::new(RefCell::new(Some((
-        Box::new(on_active),
-        Box::new(on_timeout),
-    ))));
-    let handler = Rc::new(RefCell::new(None::<glib::SignalHandlerId>));
-    let timer = Rc::new(RefCell::new(None::<glib::SourceId>));
-
-    let id = win.connect_is_active_notify({
-        let (pending, handler, timer) = (pending.clone(), handler.clone(), timer.clone());
-        move |win| {
-            if !win.is_active() {
-                return;
-            }
-            let Some((on_active, _)) = pending.borrow_mut().take() else {
-                return;
-            };
-            if let Some(id) = handler.borrow_mut().take() {
-                win.disconnect(id);
-            }
-            if let Some(source) = timer.borrow_mut().take() {
-                source.remove();
-            }
-            on_active();
-        }
-    });
-    handler.replace(Some(id));
-
-    let source = glib::timeout_add_local_once(timeout, {
-        let (win, timer) = (win.clone(), timer.clone());
-        move || {
-            // This source is finishing; it must not be removed later.
-            timer.borrow_mut().take();
-            let Some((_, on_timeout)) = pending.borrow_mut().take() else {
-                return;
-            };
-            if let Some(id) = handler.borrow_mut().take() {
-                win.disconnect(id);
-            }
-            on_timeout();
-        }
-    });
-    timer.replace(Some(source));
 }

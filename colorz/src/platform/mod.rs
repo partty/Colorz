@@ -3,19 +3,36 @@
 
 pub mod autostart;
 pub mod clipboard;
+pub mod focus;
 pub mod notify;
 pub mod pick;
 pub mod shortcuts;
+#[cfg(not(windows))]
 pub mod tray;
+pub mod tray_model;
+#[cfg(windows)]
+pub mod windows;
 
+#[cfg(windows)]
+pub use windows::tray;
+
+#[cfg(not(windows))]
 use std::cell::OnceCell;
+#[cfg(not(windows))]
 use std::future::Future;
 use std::sync::OnceLock;
 
+#[cfg(not(windows))]
 use futures_util::FutureExt;
+#[cfg(not(windows))]
 use futures_util::future::{LocalBoxFuture, Shared};
 
+#[cfg(not(windows))]
 use crate::APP_ID;
+
+/// Whether colors can be picked from the screen. Not yet on Windows.
+#[expect(dead_code, reason = "the UI does not read it yet")]
+pub const CAN_PICK: bool = cfg!(not(windows));
 
 /// Prints `msg` to stderr when the environment has `COLORZ_DEBUG=1`.
 pub fn debug(msg: &str) {
@@ -25,6 +42,7 @@ pub fn debug(msg: &str) {
     }
 }
 
+#[cfg(not(windows))]
 thread_local! {
     static HOST_REGISTRATION: OnceCell<Shared<LocalBoxFuture<'static, ()>>> =
         const { OnceCell::new() };
@@ -35,6 +53,7 @@ thread_local! {
 /// its first call, so registering later has no effect. Registration
 /// failing (e.g. no installed `.desktop` file) is logged and does not
 /// block portal use.
+#[cfg(not(windows))]
 pub fn portals_ready() -> impl Future<Output = ()> {
     HOST_REGISTRATION.with(|r| {
         r.get_or_init(|| register_host_app().boxed_local().shared())
@@ -42,6 +61,7 @@ pub fn portals_ready() -> impl Future<Output = ()> {
     })
 }
 
+#[cfg(not(windows))]
 async fn register_host_app() {
     let registered = match ashpd::AppID::try_from(APP_ID) {
         Ok(app_id) => ashpd::register_host_app(app_id).await,

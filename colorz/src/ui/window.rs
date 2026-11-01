@@ -160,12 +160,20 @@ impl ColorzWindow {
     /// Shows the hidden window only to get focus for a clipboard copy; it
     /// is hidden again afterwards unless [`ColorzWindow::present`] is called
     /// meanwhile.
+    #[cfg_attr(
+        windows,
+        expect(dead_code, reason = "only the Linux clipboard fallback uses it")
+    )]
     pub fn present_briefly(&self) {
         self.shown_on_purpose.set(false);
         self.window.present();
     }
 
     /// Whether the window was last shown with [`ColorzWindow::present`].
+    #[cfg_attr(
+        windows,
+        expect(dead_code, reason = "only the Linux clipboard fallback uses it")
+    )]
     pub fn shown_on_purpose(&self) -> bool {
         self.shown_on_purpose.get()
     }

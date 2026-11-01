@@ -1,16 +1,21 @@
 //! Desktop notifications. GNOME only shows them for an app whose `.desktop`
-//! file (matching the app ID) is installed.
+//! file (matching the app ID) is installed. Windows shows none yet.
 
+#[cfg(not(windows))]
 use adw::prelude::*;
 use colorz_core::color::Color;
+#[cfg(not(windows))]
 use gtk::{gdk, gio, glib};
 
 /// Edge length of the swatch used as the notification icon, in pixels.
+#[cfg(not(windows))]
 const SWATCH_SIZE: usize = 64;
 /// Notification id of "Copied …"; each one replaces the previous.
+#[cfg(not(windows))]
 const COPIED_ID: &str = "copied";
 
 /// `Copied <text>`, plus ` (<target>)` and ` — out of gamut` when given.
+#[cfg(not(windows))]
 pub fn copied_title(text: &str, target_name: Option<&str>, oog: bool) -> String {
     let mut title = format!("Copied {text}");
     if let Some(target) = target_name {
@@ -24,6 +29,7 @@ pub fn copied_title(text: &str, target_name: Option<&str>, oog: bool) -> String 
 
 /// Announces a copy with a swatch of `color` as the icon. `target_name` is
 /// the "copy as" space when it is not sRGB.
+#[cfg(not(windows))]
 pub fn notify_copied(
     app: &adw::Application,
     text: &str,
@@ -38,10 +44,27 @@ pub fn notify_copied(
 
 /// A notification with just a title; a later one with the same `id`
 /// replaces it.
+#[cfg(not(windows))]
 pub fn notify(app: &adw::Application, id: &str, title: &str) {
     app.send_notification(Some(id), &gio::Notification::new(title));
 }
 
+/// Shows nothing yet on Windows.
+#[cfg(windows)]
+pub fn notify_copied(
+    _app: &adw::Application,
+    _text: &str,
+    _color: &Color,
+    _target_name: Option<&str>,
+    _oog: bool,
+) {
+}
+
+/// Shows nothing yet on Windows.
+#[cfg(windows)]
+pub fn notify(_app: &adw::Application, _id: &str, _title: &str) {}
+
+#[cfg(not(windows))]
 fn swatch_icon(color: &Color) -> gio::BytesIcon {
     let pixels = color.to_srgb8().repeat(SWATCH_SIZE * SWATCH_SIZE);
     let size = SWATCH_SIZE as i32;
@@ -55,7 +78,7 @@ fn swatch_icon(color: &Color) -> gio::BytesIcon {
     gio::BytesIcon::new(&texture.save_to_png_bytes())
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
 

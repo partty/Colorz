@@ -1,19 +1,27 @@
 //! The global "pick" shortcut: the GlobalShortcuts portal, plus a GNOME
-//! custom keybinding running `colorz --pick` as a fallback.
+//! custom keybinding running `colorz --pick` as a fallback. Not available
+//! on Windows yet.
 
+#[cfg(not(windows))]
 use std::pin::pin;
 
 use adw::prelude::*;
+#[cfg(not(windows))]
 use ashpd::desktop::global_shortcuts::{Activated, GlobalShortcuts, NewShortcut};
+#[cfg(not(windows))]
 use futures_util::StreamExt;
 use gtk::{gio, glib};
 
+#[cfg(not(windows))]
 use super::clipboard;
 
 /// Portal id of the pick shortcut.
+#[cfg(not(windows))]
 const PICK_ID: &str = "pick";
+#[cfg(not(windows))]
 const PICK_DESCRIPTION: &str = "Pick a color from the screen";
 /// Suggested to GNOME, which asks the user to confirm or change it.
+#[cfg(not(windows))]
 const PREFERRED_TRIGGER: &str = "SUPER+SHIFT+c";
 
 const MEDIA_KEYS_SCHEMA: &str = "org.gnome.settings-daemon.plugins.media-keys";
@@ -28,6 +36,7 @@ const FALLBACK_COMMAND: &str = "colorz --pick";
 /// Registers the pick shortcut with the GlobalShortcuts portal and starts
 /// activating `app.pick` whenever it fires. Returns how the shortcut is
 /// triggered, as described by the portal (may be empty).
+#[cfg(not(windows))]
 pub async fn register(app: &adw::Application) -> Result<String, String> {
     super::portals_ready().await;
     let portal = GlobalShortcuts::new().await.map_err(|e| e.to_string())?;
@@ -70,7 +79,14 @@ pub async fn register(app: &adw::Application) -> Result<String, String> {
     Ok(trigger)
 }
 
+/// Fails: there are no global shortcuts on Windows yet.
+#[cfg(windows)]
+pub async fn register(_app: &adw::Application) -> Result<String, String> {
+    Err("Global shortcuts are not available on Windows yet".into())
+}
+
 /// The XDG activation token GNOME passes with the activation, if any.
+#[cfg(not(windows))]
 fn activation_token(a: &Activated) -> Option<String> {
     let value = a.options().get("activation_token")?;
     value.downcast_ref::<String>().ok()

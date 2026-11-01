@@ -1,4 +1,5 @@
 //! The login autostart entry, `~/.config/autostart/<app-id>.desktop`.
+//! Not managed on Windows yet.
 //!
 //! Only an installed binary manages it, so development runs from `target/`
 //! never write into the user's autostart directory.
@@ -6,12 +7,16 @@
 use std::io;
 use std::path::{Component, Path};
 
+#[cfg(not(windows))]
 use colorz_core::storage::write_atomic;
 
+#[cfg(not(windows))]
 use super::debug;
+#[cfg(not(windows))]
 use crate::APP_ID;
 
 /// Contents of the autostart `.desktop` file.
+#[cfg(not(windows))]
 pub fn desktop_entry() -> String {
     [
         "[Desktop Entry]",
@@ -27,6 +32,7 @@ pub fn desktop_entry() -> String {
 }
 
 /// Writes (`on`) or removes `<dir>/<app-id>.desktop`.
+#[cfg(not(windows))]
 pub fn set_enabled(dir: &Path, on: bool) -> io::Result<()> {
     let file = dir.join(format!("{APP_ID}.desktop"));
     if on {
@@ -59,6 +65,7 @@ pub fn running_installed() -> bool {
 
 /// Makes the user's autostart entry match `on`, when running installed;
 /// otherwise leaves it alone.
+#[cfg(not(windows))]
 pub fn sync(on: bool) -> io::Result<()> {
     if !running_installed() {
         debug("autostart: not installed; leaving the autostart entry alone");
@@ -70,11 +77,18 @@ pub fn sync(on: bool) -> io::Result<()> {
     set_enabled(&config.join("autostart"), on)
 }
 
+/// Leaves start at login alone; Windows does not manage it yet.
+#[cfg(windows)]
+pub fn sync(_on: bool) -> io::Result<()> {
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    #[cfg(not(windows))]
     fn autostart_writes_and_removes() {
         let dir = tempfile::tempdir().unwrap();
         let dir = dir.path().join("autostart");
@@ -89,6 +103,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn entry_launches_in_background() {
         let entry = desktop_entry();
         let lines: Vec<&str> = entry.lines().collect();

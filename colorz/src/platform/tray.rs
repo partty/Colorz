@@ -14,54 +14,14 @@ use image::{ExtendedColorType, ImageEncoder, codecs::png::PngEncoder};
 use ksni::menu::{CheckmarkItem, StandardItem, SubMenu};
 use ksni::{Icon, MenuItem, OfflineReason, TrayMethods};
 
+use super::tray_model::{ICON_LIGHTNESS, ICON_SIZE};
+pub use super::tray_model::{TrayCommand, TrayEvent, TrayModel};
 use crate::APP_ID;
 
 /// Most recent picks listed in the menu.
 const MAX_RECENT: usize = 5;
-/// Edge length of the fallback tray icon and of the menu swatches.
-const ICON_SIZE: u32 = 32;
+/// Edge length of the menu swatches.
 const SWATCH_SIZE: u32 = 16;
-/// OKHSL lightness of the fallback icon's color wheel.
-const ICON_LIGHTNESS: f64 = 0.65;
-
-/// What the user chose in the tray, handled on the GTK main loop.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TrayCommand {
-    Open,
-    Pick,
-    Paste,
-    ToggleChrome,
-    /// Copy history entry `i` in the default format.
-    CopyRecent(usize),
-    Quit,
-}
-
-impl TrayCommand {
-    /// Whether the command may show a window, which on Wayland needs the
-    /// click's activation token to get focus.
-    fn presents(self) -> bool {
-        !matches!(self, TrayCommand::ToggleChrome | TrayCommand::Quit)
-    }
-}
-
-/// A [`TrayCommand`] with the XDG activation token of the click, if the
-/// tray host provided one.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TrayEvent {
-    pub command: TrayCommand,
-    pub token: Option<String>,
-}
-
-/// Everything the menu shows.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct TrayModel {
-    /// (hex label, sRGB) of the recent picks, newest first.
-    pub recent: Vec<(String, [u8; 3])>,
-    /// Whether "Correct picks from Chrome" is on.
-    pub chrome: bool,
-    /// How the pick shortcut is triggered; empty when there is none.
-    pub shortcut_label: String,
-}
 
 /// Updates the tray from the GTK main loop.
 pub struct TrayHandle {

@@ -506,6 +506,7 @@ impl AppState {
 mod tests {
     use super::*;
     use std::cell::{Cell, RefCell};
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
     use std::rc::Rc;
@@ -743,6 +744,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn unreadable_config_is_never_saved() {
         let dir = tempfile::tempdir().unwrap();
         let paths = Paths::in_dir(dir.path());

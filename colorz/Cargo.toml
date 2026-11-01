@@ -10,11 +10,13 @@ repository.workspace = true
 colorz-core = { path = "../colorz-core" }
 gtk.workspace = true
 adw.workspace = true
-ashpd.workspace = true
 async-channel.workspace = true
 dirs.workspace = true
 futures-util.workspace = true
 image.workspace = true
+
+[target.'cfg(not(windows))'.dependencies]
+ashpd.workspace = true
 ksni.workspace = true
 
 [build-dependencies]

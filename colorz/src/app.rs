@@ -296,7 +296,7 @@ impl Colorz {
             let main: gtk::Window = c.window.window().clone().upcast();
             let (tx, rx) = async_channel::bounded::<()>(1);
             let tx2 = tx.clone();
-            clipboard::when_active(
+            crate::platform::focus::when_active(
                 &main,
                 PASTE_FOCUS_TIMEOUT,
                 move || {

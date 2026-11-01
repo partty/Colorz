@@ -1,14 +1,18 @@
 //! Screen color picking through the Screenshot portal (GNOME's own picker).
+//! Not available on Windows yet.
 
 use std::future::Future;
 
+#[cfg(not(windows))]
 use ashpd::WindowIdentifier;
+#[cfg(not(windows))]
 use ashpd::desktop::ResponseError;
 use colorz_core::color::{Color, RgbSpace, chrome_correct};
 
 /// Runs GNOME's color picker and returns the picked sRGB channels in
 /// `[0, 1]`, or `None` when the user cancelled. `parent` is the window the
 /// picker belongs to, if one is shown.
+#[cfg(not(windows))]
 pub fn pick_color(
     parent: Option<&gtk::Window>,
 ) -> impl Future<Output = Result<Option<[f64; 3]>, String>> + use<> {
@@ -37,6 +41,16 @@ pub fn pick_color(
             Err(e) => Err(e.to_string()),
         }
     }
+}
+
+/// Fails: there is no screen picker on Windows yet.
+#[cfg(windows)]
+pub fn pick_color(
+    _parent: Option<&gtk::Window>,
+) -> impl Future<Output = Result<Option<[f64; 3]>, String>> + use<> {
+    std::future::ready(Err(
+        "Picking from the screen is not available on Windows yet".into(),
+    ))
 }
 
 /// Turns the portal's sRGB channels into a [`Color`], applying the Chrome
