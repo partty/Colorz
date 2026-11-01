@@ -34,7 +34,7 @@ fn windows_resources() {
     );
     let out = std::path::Path::new(&env("OUT_DIR")).join("colorz-rc.o");
     let status = std::process::Command::new(&windres)
-        .arg(format!("-DCOLORZ_VERSION_STR=\"{version}\""))
+        .arg(format!("-DCOLORZ_VERSION={version}"))
         .arg(format!("-DCOLORZ_VERSION_NUM={num}"))
         .args(["--include-dir", "../windows", "-O", "coff", "-o"])
         .arg(&out)

@@ -1,7 +1,14 @@
 // Windows resources linked into colorz.exe: the app icon and version
 // information. build.rs compiles this with windres, defining
-// COLORZ_VERSION_STR (e.g. "0.1.1") and COLORZ_VERSION_NUM (e.g. 0,1,1,0).
-#pragma code_page(65001)
+// COLORZ_VERSION (e.g. 0.1.1) and COLORZ_VERSION_NUM (e.g. 0,1,1,0). The
+// version is passed bare and stringized here, because quotes in a -D value
+// do not survive MSYS2 windres. The file is ASCII; "\251" is the copyright
+// sign in code page 1252.
+#pragma code_page(1252)
+
+#define COLORZ_STR2(x) #x
+#define COLORZ_STR(x) COLORZ_STR2(x)
+#define COLORZ_VERSION_STR COLORZ_STR(COLORZ_VERSION)
 
 // Ordinal 1: the window and notification-area icon.
 1 ICON "colorz.ico"
@@ -23,7 +30,7 @@ BEGIN
         BEGIN
             VALUE "FileDescription", "Colorz"
             VALUE "FileVersion", COLORZ_VERSION_STR
-            VALUE "LegalCopyright", "© 2026 Ogi Tsonev, GPL-3.0-or-later"
+            VALUE "LegalCopyright", "\251 2026 Ogi Tsonev, GPL-3.0-or-later"
             VALUE "ProductName", "Colorz"
             VALUE "ProductVersion", COLORZ_VERSION_STR
         END

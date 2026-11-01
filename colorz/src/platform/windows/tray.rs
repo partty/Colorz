@@ -5,6 +5,8 @@
 //! messages of the icon's hidden window. Its handlers only forward events
 //! into the channel that the GTK main loop reads.
 
+use std::cell::RefCell;
+
 use colorz_core::wheel::render_okhsl_disc;
 use tray_icon::menu::{Menu, MenuEvent, MenuItem};
 use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
@@ -12,14 +14,20 @@ use tray_icon::{Icon, MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, 
 use crate::platform::tray_model::{ICON_LIGHTNESS, ICON_SIZE};
 pub use crate::platform::tray_model::{TrayCommand, TrayEvent, TrayModel};
 
-/// Keeps the tray icon alive; dropping it removes the icon.
+/// Keeps the tray icon alive until [`TrayHandle::close`].
 pub struct TrayHandle {
-    _icon: Option<TrayIcon>,
+    icon: RefCell<Option<TrayIcon>>,
 }
 
 impl TrayHandle {
     /// The Windows menu has no model-dependent items, so nothing changes.
     pub fn update(&self, _model: TrayModel) {}
+
+    /// Removes the icon. Windows would otherwise keep showing a dead icon
+    /// after exit until the mouse passes over it.
+    pub fn close(&self) {
+        drop(self.icon.take());
+    }
 }
 
 /// (menu id, label, command) of each menu item, top to bottom.
@@ -73,7 +81,9 @@ pub fn spawn(sender: async_channel::Sender<TrayEvent>, _model: TrayModel) -> Tra
             None
         }
     };
-    TrayHandle { _icon: icon }
+    TrayHandle {
+        icon: RefCell::new(icon),
+    }
 }
 
 fn build() -> Result<TrayIcon, Box<dyn std::error::Error>> {
@@ -89,8 +99,8 @@ fn build() -> Result<TrayIcon, Box<dyn std::error::Error>> {
         .build()?)
 }
 
-/// The exe's icon resource, or a rendered color wheel if it is missing
-/// (e.g. in test binaries).
+/// The exe's icon resource (linked by build.rs), or a rendered color wheel
+/// if it cannot be loaded.
 fn icon() -> Result<Icon, tray_icon::BadIcon> {
     Icon::from_resource(1, Some((ICON_SIZE, ICON_SIZE))).or_else(|_| {
         Icon::from_rgba(

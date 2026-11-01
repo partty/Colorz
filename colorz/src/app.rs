@@ -452,9 +452,19 @@ pub fn run() -> glib::ExitCode {
     });
 
     // D-Bus activation (e.g. clicking a notification).
-    app.connect_activate(move |_| {
+    app.connect_activate({
+        let ctx = ctx.clone();
+        move |_| {
+            if let Some(c) = ctx.get() {
+                c.window.present();
+            }
+        }
+    });
+
+    // Every quit path ends here; `Colorz` itself is never dropped.
+    app.connect_shutdown(move |_| {
         if let Some(c) = ctx.get() {
-            c.window.present();
+            c.tray.close();
         }
     });
 

@@ -34,6 +34,9 @@ impl TrayHandle {
         // Fails only when the tray could not be started.
         let _ = self.models.try_send(model);
     }
+
+    /// Nothing to do: the tray host drops the icon when the process exits.
+    pub fn close(&self) {}
 }
 
 /// Starts the tray icon. Its events arrive on `sender`. When there
