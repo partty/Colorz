@@ -1,0 +1,4 @@
+# Seeded by windows/smoke.ps1 into %APPDATA%\colorz before the first launch.
+# Missing keys take their defaults.
+start_at_login = true
+autostart_initialized = true
