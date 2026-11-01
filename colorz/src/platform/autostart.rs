@@ -1,5 +1,5 @@
 //! The login autostart entry, `~/.config/autostart/<app-id>.desktop`.
-//! Not managed on Windows yet.
+//! On Windows it is the `Run` registry value instead.
 //!
 //! Only an installed binary manages it, so development runs from `target/`
 //! never write into the user's autostart directory.
@@ -77,10 +77,22 @@ pub fn sync(on: bool) -> io::Result<()> {
     set_enabled(&config.join("autostart"), on)
 }
 
-/// Leaves start at login alone; Windows does not manage it yet.
+/// Whether the entry is re-applied at every start of an installed build
+/// (Windows), rather than once (Ubuntu).
+pub const SYNC_EVERY_START: bool = cfg!(windows);
+
+/// Makes the `Run` registry value match `on`, when running installed;
+/// otherwise leaves it alone.
 #[cfg(windows)]
-pub fn sync(_on: bool) -> io::Result<()> {
-    Ok(())
+pub fn sync(on: bool) -> io::Result<()> {
+    use super::windows::run_key::{RUN_KEY, VALUE_NAME, command_line, set};
+
+    if !running_installed() {
+        return Ok(());
+    }
+    let exe = std::env::current_exe()?;
+    let command = on.then(|| command_line(&exe));
+    set(RUN_KEY, VALUE_NAME, command.as_deref())
 }
 
 #[cfg(test)]

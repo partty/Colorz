@@ -19,6 +19,9 @@ image.workspace = true
 ashpd.workspace = true
 ksni.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+windows-registry = "0.100.0"
+
 [build-dependencies]
 glib-build-tools = "0.22"
 

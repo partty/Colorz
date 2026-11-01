@@ -594,18 +594,24 @@ fn handle_tray_events(
     });
 }
 
-/// Whether to set up the autostart entry now: once, from an installed
-/// build. Development builds never do, so they cannot use up the setup.
-fn should_init_autostart(installed: bool, initialized: bool) -> bool {
-    installed && !initialized
+/// Whether to sync the autostart entry now: from an installed build only,
+/// so development builds never touch it or use up the setup. Ubuntu does it
+/// once; Windows (`every_start`) at every start.
+fn should_sync_autostart(installed: bool, initialized: bool, every_start: bool) -> bool {
+    installed && (every_start || !initialized)
 }
 
-/// Keeps the tray menu in step with the state, and sets up autostart once.
+/// Keeps the tray menu in step with the state, and syncs autostart.
 fn follow_state(colorz: &Rc<Colorz>) {
-    // Only the first installed run writes the autostart entry; afterwards
-    // the Settings toggle does, so a choice made in GNOME Startup Apps stays.
+    // Ubuntu: only the first installed run writes the autostart entry;
+    // afterwards the Settings toggle does, so a choice made in GNOME Startup
+    // Apps stays. Windows re-applies it from the config at every start.
     let cfg = colorz.state.config();
-    if should_init_autostart(autostart::running_installed(), cfg.autostart_initialized) {
+    if should_sync_autostart(
+        autostart::running_installed(),
+        cfg.autostart_initialized,
+        autostart::SYNC_EVERY_START,
+    ) {
         if let Err(e) = autostart::sync(cfg.start_at_login) {
             eprintln!("colorz: cannot update the autostart entry: {e}");
         } else {
@@ -666,11 +672,15 @@ mod tests {
     }
 
     #[test]
-    fn autostart_is_initialized_once_by_installed_builds() {
-        assert!(should_init_autostart(true, false));
-        assert!(!should_init_autostart(true, true));
-        assert!(!should_init_autostart(false, false));
-        assert!(!should_init_autostart(false, true));
+    fn autostart_sync_rules() {
+        // Ubuntu: once, from an installed build.
+        assert!(should_sync_autostart(true, false, false));
+        assert!(!should_sync_autostart(true, true, false));
+        assert!(!should_sync_autostart(false, false, false));
+        // Windows: every start of an installed build, never from target\.
+        assert!(should_sync_autostart(true, true, true));
+        assert!(should_sync_autostart(true, false, true));
+        assert!(!should_sync_autostart(false, true, true));
     }
 
     #[test]
