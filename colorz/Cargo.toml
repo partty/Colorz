@@ -20,6 +20,7 @@ ashpd.workspace = true
 ksni.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+tauri-winrt-notification = "0.8.1"
 tray-icon = { version = "0.26.1", default-features = false }
 windows-registry = "0.100.0"
 windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }

@@ -1,5 +1,6 @@
 //! Desktop notifications. GNOME only shows them for an app whose `.desktop`
-//! file (matching the app ID) is installed. Windows shows none yet.
+//! file (matching the app ID) is installed. Windows shows them as toasts
+//! for an installed build only (see [`super::windows::toast`]).
 
 #[cfg(not(windows))]
 use adw::prelude::*;
@@ -15,7 +16,6 @@ const SWATCH_SIZE: usize = 64;
 const COPIED_ID: &str = "copied";
 
 /// `Copied <text>`, plus ` (<target>)` and ` — out of gamut` when given.
-#[cfg(not(windows))]
 pub fn copied_title(text: &str, target_name: Option<&str>, oog: bool) -> String {
     let mut title = format!("Copied {text}");
     if let Some(target) = target_name {
@@ -49,20 +49,23 @@ pub fn notify(app: &adw::Application, id: &str, title: &str) {
     app.send_notification(Some(id), &gio::Notification::new(title));
 }
 
-/// Shows nothing yet on Windows.
+/// Announces a copy as a toast, without the swatch.
 #[cfg(windows)]
 pub fn notify_copied(
     _app: &adw::Application,
-    _text: &str,
+    text: &str,
     _color: &Color,
-    _target_name: Option<&str>,
-    _oog: bool,
+    target_name: Option<&str>,
+    oog: bool,
 ) {
+    super::windows::toast::show(&copied_title(text, target_name, oog));
 }
 
-/// Shows nothing yet on Windows.
+/// A toast with just a title. Windows does not replace it by `id`.
 #[cfg(windows)]
-pub fn notify(_app: &adw::Application, _id: &str, _title: &str) {}
+pub fn notify(_app: &adw::Application, _id: &str, title: &str) {
+    super::windows::toast::show(title);
+}
 
 #[cfg(not(windows))]
 fn swatch_icon(color: &Color) -> gio::BytesIcon {
@@ -78,7 +81,7 @@ fn swatch_icon(color: &Color) -> gio::BytesIcon {
     gio::BytesIcon::new(&texture.save_to_png_bytes())
 }
 
-#[cfg(all(test, not(windows)))]
+#[cfg(test)]
 mod tests {
     use super::*;
 

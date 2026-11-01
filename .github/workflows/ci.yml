@@ -116,6 +116,52 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked
 
+      - name: Build release
+        run: cargo build --release --locked -p colorz
+
+      - name: Bundle the GTK runtime
+        run: |
+          stage="$(cygpath -u "$RUNNER_TEMP")/stage"
+          windows/bundle.sh target/release/colorz.exe "$stage"
+          du -sh "$stage"
+
+      # tr: Windows checkouts may turn Cargo.toml's line endings into CRLF.
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1 | tr -d '\r')
+          [ -n "$version" ] || { echo "No version in Cargo.toml" >&2; exit 1; }
+          echo "version=$version" >> "$(cygpath -u "$GITHUB_OUTPUT")"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+          if (Test-Path $iscc) {
+            Write-Host "Inno Setup is already installed"
+            exit 0
+          }
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed ($LASTEXITCODE)" }
+          if (-not (Test-Path $iscc)) { throw "$iscc is missing after installing Inno Setup" }
+
+      - name: Build the installer
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $v = $env:APP_VERSION
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$v" "/DStageDir=$env:RUNNER_TEMP\stage" "/O$env:RUNNER_TEMP\out" windows\colorz.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+          $setup = Get-Item "$env:RUNNER_TEMP\out\colorz-$v-setup-x64.exe"
+          Write-Host ("{0}: {1:N1} MB" -f $setup.Name, ($setup.Length / 1MB))
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: colorz-windows
+          path: ${{ runner.temp }}/out/*.exe
+          if-no-files-found: error
+
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')

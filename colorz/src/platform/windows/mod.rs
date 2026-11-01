@@ -3,4 +3,5 @@
 
 pub mod identity;
 pub mod run_key;
+pub mod toast;
 pub mod tray;
